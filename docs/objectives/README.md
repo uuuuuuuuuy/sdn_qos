@@ -29,6 +29,15 @@
    - 保持 `Refresh Interval=5` 秒，检查 `Ports stats` 与 `Flow Summary` 卡片时间戳是否更新。尚无交换机连接时会显示 “No data to display...”，即可判定 Objective 1 完成。
 4. **常见排查**：Dashboard 右上角 `Messages` 链接可查看日志；若页面无法访问，请检查 8080 端口、防火墙及浏览器缓存（可按 `Ctrl+F5`）。
 
+> 快照建议：
+> ```bash
+> python scripts/objectives/objective4_collect_stats.py \
+>   --controller http://127.0.0.1:8080 \
+>   --no-modules --snapshots topology-switches topology-links topology-hosts \
+>   --prefix obj1_topology
+> ```
+> 将生成 `obj1_topology_topology_switches.csv` / `_links.csv` / `_hosts.csv`，可在 Objective 5 报告中展示环境初始化结果。
+
 ---
 
 ## Objective 2：树形拓扑与 GUI 验证（截止 10 月中旬）
@@ -40,6 +49,16 @@
    - 打开 `flows.html`，依次选择 `s1`、`s2`、`s3`，确认 `simple_switch_13` 为每个端口学习到 `in_port` ↔ `OUTPUT` 条目，尤其是 `s1` 上 `in_port=1` ↔ `OUTPUT:2`（指向 `s3`）。
    - 在 Dashboard `Ports stats` 中点击 `↔` 放大卡片，关注 `s1-eth1/eth2` 与 `s2-eth1` 等端口 `rx-bytes`/`tx-bytes` 随 `pingall` 增长。如需记录基线值，可点击 `Pause` 停止刷新。
 5. **REST 接口验证（可选）**：打开浏览器开发者工具 Network 面板，确认周期性请求 `GET /flowmanager/data?portstat=0000000000000001` 返回 JSON 数据。
+
+> 基线采集示例：
+> ```bash
+> python scripts/objectives/objective4_collect_stats.py \
+>   --controller http://127.0.0.1:8080 \
+>   --dpid 1 --dpid 2 --dpid 3 \
+>   --modules port --samples 3 --interval 2 \
+>   --prefix obj2_baseline
+> ```
+> 生成的 `obj2_baseline_ports.csv` 可作为后续 QoS 策略的基线数据。
 
 ---
 
@@ -100,6 +119,18 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
 ```
 结合 Dashboard `Ports stats` 与 `messages.html -> Stats`，验证关键业务吞吐保持、普通业务受限。
 
+> 自动化采集建议：
+> ```bash
+> python scripts/objectives/objective4_collect_stats.py \
+>   --controller http://127.0.0.1:8080 \
+>   --dpid 1 --dpid 2 --dpid 3 \
+>   --modules port flow queue qos-queue qos-rule \
+>   --snapshots port-desc \
+>   --duration 120 --interval 5 \
+>   --prefix priority_run
+> ```
+> 针对每套策略（`baseline_run` / `priority_run` / `classification_run`）分别执行一次，保留端口吞吐、流表条目、队列配置与端口描述的完整采样。
+
 ---
 
 ## Objective 4：对比三种策略并导出结果（截止 12 月中旬）
@@ -117,28 +148,31 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
    2. 返回 Dashboard，`Switch ID(s)` 选择 `0000000000000001`，点击卡片右上角 `⟳` 强制刷新初始统计。
    3. 在 Mininet CLI 中运行与 Objective 3 相同的流量脚本，每轮持续不少于 30 秒；测试完毕后使用 `jobs` + `kill` 关闭后台 `iperf3` 进程。
 3. **采集统计数据**：
-   - 使用脚本：
+   - 每轮实验结束前运行：
      ```bash
      python scripts/objectives/objective4_collect_stats.py \
        --controller http://127.0.0.1:8080 \
        --dpid 1 --dpid 2 --dpid 3 \
+       --modules port flow queue meter table qos-queue qos-rule \
+       --snapshots topology-switches topology-links topology-hosts port-desc \
        --duration 180 --interval 5 \
-       --flow-stats --prefix priority_run
+       --prefix priority_run
      ```
-     输出默认写入 `docs/objectives/data/priority_run_ports.csv` 与 `_flows.csv`，覆盖 `s1-s3` 的端口/流表统计。
+     会在 `docs/objectives/data/` 下生成 `priority_run_ports.csv`、`_flows.csv`、`_queues.csv`、`_meters.csv`、`_tables.csv` 等文件，以及拓扑/端口描述快照。为 baseline、classification 轮次更换 `--prefix` 后重复执行即可。
    - 如需补充截图，可继续在 Dashboard `Ports stats` 中点击 `↔` 放大 → `Pause` 固定值后复制。
    - `messages.html -> Stats`：`Switch=s1`、`Stat Type=Port` 或 `Flow`，点击 `Start` 收集曲线，结束时点击 `Stop` 并通过浏览器“另存为”保存 PNG/SVG。
 4. **绘制图表与整理归档**：
-   - 基于前一步生成的 CSV，执行：
+   - 使用绘图脚本一次生成端口、队列、Meter、表项以及流表 Top-N 图像：
      ```bash
      python scripts/objectives/objective4_plot.py \
-       --series priority=docs/objectives/data/priority_run_ports.csv \
-       --series baseline=docs/objectives/data/baseline_run_ports.csv \
-       --port 2 --metric tx_mbps \
-       --output docs/objectives/data/priority_vs_baseline.png
+       --run baseline=docs/objectives/data/baseline_run \
+       --run priority=docs/objectives/data/priority_run \
+       --run classification=docs/objectives/data/classification_run \
+       --output-dir docs/objectives/figures/qos_comparison \
+       --ports 2 3 --dpids 1 2 3 --topn-flows 8
      ```
-     `--port` 推荐选择 `s1` 通往关键业务出口的端口编号。
-   - 为每轮实验创建独立目录（示例：`docs/objectives/data/priority_2023-12-01/`），整理 `.bk`、CSV、生成的 PNG/SVG、`iperf3.log` 与测试脚本，方便 Objective 5 调用。
+     输出目录会按照类别拆分（`ports/`、`queues/`、`meters/`、`flows/`、`qos/` 等），自动生成时间序列对比图与 QoS 配置汇总表。
+   - 为每轮实验创建独立目录（示例：`docs/objectives/data/priority_2023-12-01/` 与 `docs/objectives/figures/priority_2023-12-01/`），整理 `.bk`、CSV、生成的 PNG/SVG、`iperf3.log` 与测试脚本，方便 Objective 5 调用。
 
 ---
 
@@ -161,8 +195,8 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
        └── ...
    ```
 2. **分析指标**：
-   - 利用 `objective4_collect_stats.py` 输出的 `_flows.csv` 对比 `priority=200`（关键业务）与 `priority=100`/`Goto Meter=1`（普通业务）的 `byte_count`、`packet_count`、`duration_sec`。如需进一步过滤可在 pandas 中按 `cookie`/`priority` 选择。
-   - 结合 `objective4_plot.py` 生成的 Mbps 曲线与 `iperf3` 日志中的 `Jitter`、`Lost/Total Datagrams`、`Bandwidth`，说明 Meter 与队列配置对业务质量的影响；如启用 `SET_QUEUE`，需同步记录 `ovs-vsctl` 中配置的 `min-rate`、`max-rate`。
+   - 利用 `objective4_collect_stats.py` 输出的 `_flows.csv`、`_tables.csv`、`_meters.csv`、`_queues.csv` 追踪各策略下关键流的 `byte_count`、`lookup_count`、`meter_byte_ps`、`queue_tx_mbps` 等指标，必要时在 pandas 中按 `cookie`/`priority`/`queue_id` 过滤。
+   - 结合 `objective4_plot.py` 生成的端口吞吐、队列速率、Meter 曲线与 `iperf3` 日志中的 `Jitter`、`Lost/Total Datagrams`、`Bandwidth`，说明不同 QoS 配置对业务质量的影响；如启用 `SET_QUEUE`，需同步记录 `ovs-vsctl` 中配置的 `min-rate`、`max-rate`。
 3. **撰写论文**：使用 `docs/objectives/OBJECTIVE5_REPORT_TEMPLATE.md` 作为模板，在“方法”章节插入 `flowform.html`、`meterform.html` 的截图，在“结果”章节引用 Dashboard/Stats 导出的曲线和表格，在“讨论”章节总结 QoS 策略优劣。
 4. **版本管理**：将 `.bk` 配置、CSV、图表与脚本压缩或使用 Git LFS 提交至仓库，并在提交信息中注明对应 Objective 与日期，确保后续复现。
 
