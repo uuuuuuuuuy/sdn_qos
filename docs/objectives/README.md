@@ -31,7 +31,7 @@
 
 > 快照建议：
 > ```bash
-> python scripts/objectives/objective4_collect_stats.py \
+> python scripts/tools/export_metrics.py \
 >   --controller http://127.0.0.1:8080 \
 >   --no-modules --snapshots topology-switches topology-links topology-hosts \
 >   --prefix obj1_topology
@@ -52,7 +52,7 @@
 
 > 基线采集示例：
 > ```bash
-> python scripts/objectives/objective4_collect_stats.py \
+> python scripts/tools/export_metrics.py \
 >   --controller http://127.0.0.1:8080 \
 >   --dpid 1 --dpid 2 --dpid 3 \
 >   --modules port --samples 3 --interval 2 \
@@ -165,10 +165,10 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
    - 使用绘图脚本一次生成端口、队列、Meter、表项以及流表 Top-N 图像：
      ```bash
      python scripts/objectives/objective4_plot.py \
-       --run baseline=docs/objectives/data/baseline_run \
-       --run priority=docs/objectives/data/priority_run \
-       --run classification=docs/objectives/data/classification_run \
-       --output-dir docs/objectives/figures/qos_comparison \
+       --series baseline=docs/objectives/data/baseline_run \
+       --series priority=docs/objectives/data/priority_run \
+       --series classification=docs/objectives/data/classification_run \
+       --output docs/objectives/figures/qos_comparison \
        --ports 2 3 --dpids 1 2 3 --topn-flows 8
      ```
      输出目录会按照类别拆分（`ports/`、`queues/`、`meters/`、`flows/`、`qos/` 等），自动生成时间序列对比图与 QoS 配置汇总表。

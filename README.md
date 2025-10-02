@@ -6,8 +6,8 @@
 
 - **可视化控制**：集成 FlowManager UI、拓扑可视化与 REST 接口，便于实时查看拓扑、流表、端口统计信息。
 - **Web UI 配置流程**：提供以 FlowManager 为核心的目标执行指南，可直接在浏览器内完成 Meter、队列与流表管理。
-- **数据采集支持**：提供 `objective4_collect_stats.py` 通用脚本，可按需抓取端口、队列、流表、Meter、Group、QoS 规则及拓扑快照。
-- **自动化图表生成**：`objective4_plot.py` 一次性输出端口/队列/表项曲线与流表 Top-N、QoS 配置等图表，为 Objective 4/5 提供论文级素材。
+- **数据采集支持**：提供 `scripts/tools/export_metrics.py` 通用脚本，以及 `scripts/objectives/objective4_collect_stats.py` 的 QoS 场景封装，可按需抓取端口、队列、流表、Meter、Group、QoS 规则及拓扑快照。
+- **自动化图表生成**：`scripts/tools/plot_metrics.py` 与 `scripts/objectives/objective4_plot.py` 可批量输出端口/队列/表项曲线与流表 Top-N、QoS 配置等图表，为 Objective 4/5 提供论文级素材。
 - **论文支撑材料**：整理实验流程、模板与常见问题，方便撰写技术报告或论文。
 
 ## 仓库结构概览
@@ -17,7 +17,8 @@ sdn_qos/
 ├── flowmanager/               # FlowManager 应用源码（已整合至 Ryu）
 ├── ryu_qos_apps/              # QoS REST 与示例交换机扩展
 ├── scripts/
-│   ├── objectives/            # 启动控制器/拓扑/采集的辅助脚本及说明
+│   ├── objectives/            # 启动控制器/拓扑/Objective 4 封装脚本及说明
+│   ├── tools/                 # 通用数据采集与绘图脚本
 │   └── ...                    # 其他历史脚本
 ├── topology/                  # 数据中心及最小拓扑示例
 ├── docs/objectives/           # 各阶段目标的执行手册与论文模板
@@ -105,9 +106,9 @@ sdn_qos/
 
      # 基于多轮实验生成端口/队列/Meter/流表 Top-N 图像
      python scripts/objectives/objective4_plot.py \
-       --run baseline=docs/objectives/data/baseline_run \
-       --run priority=docs/objectives/data/priority_run \
-       --output-dir docs/objectives/figures/priority_vs_baseline \
+       --series baseline=docs/objectives/data/baseline_run \
+       --series priority=docs/objectives/data/priority_run \
+       --output docs/objectives/figures/priority_vs_baseline \
        --ports 2 3 --dpids 1 2 3 --topn-flows 8
      ```
 
@@ -115,7 +116,7 @@ sdn_qos/
 
 - **Objective 1（环境验证）**：
   ```bash
-  python scripts/objectives/objective4_collect_stats.py \
+  python scripts/tools/export_metrics.py \
     --controller http://127.0.0.1:8080 \
     --no-modules --snapshots topology-switches topology-links topology-hosts \
     --prefix obj1_topology
@@ -124,7 +125,7 @@ sdn_qos/
 
 - **Objective 2（连通性基线）**：
   ```bash
-  python scripts/objectives/objective4_collect_stats.py \
+  python scripts/tools/export_metrics.py \
     --controller http://127.0.0.1:8080 \
     --dpid 1 --dpid 2 --dpid 3 \
     --modules port --samples 3 --interval 2 \

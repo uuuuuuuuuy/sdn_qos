@@ -41,11 +41,11 @@
 - 业务流生成工具与参数（iperf3、D-ITG）
 
 ### 4.2 数据采集方法
-- 使用 `objective4_collect_stats.py`、FlowManager 日志、Ryu REST 接口的流程
+- 使用 `scripts/tools/export_metrics.py` 或 `scripts/objectives/objective4_collect_stats.py`、FlowManager 日志、Ryu REST 接口的流程
 - 数据存储结构（JSON、PNG、CSV）
 
 ### 4.3 策略对比分析
-- 以图表（`objective4_plot.py` 输出）展示三种策略的吞吐/延迟差异
+- 以图表（`scripts/tools/plot_metrics.py` 或 `scripts/objectives/objective4_plot.py` 输出）展示三种策略的吞吐/延迟差异
 - 讨论 QoS 策略对关键业务的保障效果、对其他业务的影响
 - 若存在瓶颈或意外现象，分析原因
 
