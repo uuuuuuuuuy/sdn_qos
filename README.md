@@ -20,12 +20,11 @@ sdn_qos/
 │   ├── objectives/            # 启动控制器/拓扑/采集的辅助脚本及说明
 │   └── ...                    # 其他历史脚本
 ├── topology/                  # 数据中心及最小拓扑示例
-├── demo_results/              # 实验示例输出与对比图
 ├── docs/objectives/           # 各阶段目标的执行手册与论文模板
 └── README.md                  # 当前文件
 ```
 
-## 快速开始
+## 部署准备
 
 1. **准备虚拟环境**（以 `~/.venv` 为例，可按需调整）：
    ```bash
@@ -47,11 +46,11 @@ sdn_qos/
    ```
    额外依赖：
    ```bash
-  pip install eventlet msgpack-python netaddr oslo.config routes six webob \
+   pip install eventlet msgpack-python netaddr oslo.config routes six webob \
               tinyrpc requests pandas matplotlib
-  sudo apt install libxml2-dev libxslt1-dev libffi-dev iperf3
-  ```
-  以上 `tinyrpc` 为 FlowManager RPC 调用所需依赖，缺失时会导致 FlowManager 在处理 PacketIn 时抛出异常，请务必安装。
+   sudo apt install libxml2-dev libxslt1-dev libffi-dev iperf3
+   ```
+以上 `tinyrpc` 为 FlowManager RPC 调用所需依赖，缺失时会导致 FlowManager 在处理 PacketIn 时抛出异常，请务必安装。
 3. **拷贝 QoS 应用至 Ryu**：
    ```bash
    cp ryu_qos_apps/*.py <RYU_SOURCE_DIR>/ryu/app/
@@ -76,16 +75,26 @@ sdn_qos/
    - 或在 FlowManager `Messages` 页面的 `Config` 标签选择对应 `Switch ID`，`Rest URL=/v1.0/conf/switches/<dpid>/ovsdb_addr`，`Method=PUT`，`Data` 填写 `"tcp:127.0.0.1:6632"` 并依次提交。
    - 可通过同一页面切换到 `Method=GET`，或运行 `curl -X GET http://127.0.0.1:8080/v1.0/conf/switches/<dpid>/ovsdb_addr` 验证返回值是否为 `"tcp:127.0.0.1:6632"`。若遗漏该步骤，FlowManager 调用 QoS 功能时会收到 `result: failure, details: ovs_bridge is not exists` 的错误提示。
 
-完成以上步骤后，即可使用 `scripts/objectives` 中的脚本启动控制器与树形拓扑，并按照 `docs/objectives/README.md` 在 FlowManager 内完成全部配置与数据采集。
+完成以上步骤后，请按照下列流程运行项目：
 
-## FlowManager 操作入口
+## 运行流程
 
-- 启动控制器：`./scripts/objectives/objective1_start_controller.sh`（自动执行 `ovs-vsctl --if-exists del-manager` 与 `ovs-vsctl set-manager ptcp:6632`，首次运行需具备 `sudo` 权限）
-- 启动树形拓扑：`./scripts/objectives/objective2_launch_mininet.sh`
-- 浏览器访问：`http://<控制器 IP>:8080/flowmanager/index.html`
-- 详细的 FlowManager 页面与字段说明：`docs/objectives/README.md`
-- 自动导出 CSV：`python scripts/objectives/objective4_collect_stats.py ...`
-- 绘制对比图表：`python scripts/objectives/objective4_plot.py ...`
+1. **启动 Ryu + FlowManager**：
+   ```bash
+   ./scripts/objectives/objective1_start_controller.sh
+   ```
+   该脚本会激活虚拟环境、自动清理并开放 `ptcp:6632` 管理端口，必要时会提示输入 `sudo` 密码。
+2. **启动树形 Mininet 拓扑**：
+   ```bash
+   ./scripts/objectives/objective2_launch_mininet.sh
+   ```
+   拓扑包含 3 台 OVS 与 3 台主机，满足 Objective 1-4 的验证与统计需求。
+3. **在 FlowManager 中完成配置与采集**：
+   - 浏览器访问 `http://<控制器 IP>:8080/flowmanager/index.html`。
+   - 参考 `docs/objectives/README.md`，依序填写 Dashboard/Meter/Flow 表单，并执行 QoS 配置切换、统计导出与 CSV/图表生成。
+   - 需要自动化采集端口统计时，可运行 `python scripts/objectives/objective4_collect_stats.py ...`，随后用 `objective4_plot.py` 绘制 Mbps 折线图。
+
+依照以上步骤即可直接跑通项目并得到完整的实验数据与对比图表。
 
 ## 目标执行指南
 
@@ -93,10 +102,6 @@ sdn_qos/
 
 - `docs/objectives/README.md`：针对 Objective 1-5 的 FlowManager 操作步骤、页面字段取值与常见问题（含 Dashboard/Meter/Flow Form 字段填写示例）。
 - `docs/objectives/OBJECTIVE5_REPORT_TEMPLATE.md`：论文写作提纲，涵盖架构说明、实验设计、结果分析与总结。
-
-## 示例成果
-
-仓库 `demo_results/` 下保留了原论文中的部分示例图，包括 Ryu 架构、Per-flow/DiffServ 测试结果以及 FlowManager UI 截图，可作为实验结果的参考样式。
 
 ## 许可证与联系方式
 
