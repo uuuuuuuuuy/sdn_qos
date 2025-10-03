@@ -20,7 +20,7 @@
 
 ---
 
-## Objective 1：搭建测试环境（截止 9 月下旬）
+## Objective 1：搭建测试环境
 
 1. **启动控制器**：在终端运行 `./scripts/objectives/objective1_start_controller.sh`，脚本会启用 FlowManager、拓扑可视化与 QoS REST 应用，并自动开放 OVSDB 管理端口 `ptcp:6632`；首次执行可能提示输入 `sudo` 密码。
 2. **确认服务可用**：等待脚本输出 `HTTP serving on http://0.0.0.0:8080`，随后在浏览器访问 `http://<控制器 IP>:8080/flowmanager/index.html`。
@@ -40,7 +40,7 @@
 
 ---
 
-## Objective 2：树形拓扑与 GUI 验证（截止 10 月中旬）
+## Objective 2：树形拓扑与 GUI 验证
 
 1. **启动拓扑**：保持控制器运行，在新终端执行 `./scripts/objectives/objective2_launch_mininet.sh`，加载 `tree,depth=2,fanout=2` 拓扑（核心 `s1`、汇聚 `s2/s3`、主机 `h1-h4`）。
 2. **连通性测试**：在 Mininet CLI 运行 `pingall`，输出 `*** Results: 0% dropped` 即可确认跨层互通，可继续保留 CLI 以便后续 `iperf3` 测试。
@@ -62,7 +62,7 @@
 
 ---
 
-## Objective 3：准备 QoS 配置并验证关键业务保障（截止 11 月下旬）
+## Objective 3：准备 QoS 配置并验证关键业务保障
 
 目标是基于 FlowManager 创建“普通业务/拥塞业务”两套可切换配置，确保跨层关键流量（示例为 `h1→h4` 的 UDP 5002）优先。
 
@@ -133,7 +133,7 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
 
 ---
 
-## Objective 4：对比三种策略并导出结果（截止 12 月中旬）
+## Objective 4：对比三种策略并导出结果
 
 1. **准备配置文件**：
    - `baseline.bk`：Objective 3 第 1 步生成。
@@ -176,7 +176,7 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
 
 ---
 
-## Objective 5：汇总测试结果并撰写论文（截止 次年 3 月）
+## Objective 5：汇总测试结果并撰写论文
 
 1. **资料归档**：推荐目录结构如下，将 Objective 4 生成的 CSV/图表与 `.bk` 同步归档，便于撰写阶段直接引用：
    ```text
