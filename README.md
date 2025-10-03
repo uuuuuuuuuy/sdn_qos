@@ -1,6 +1,6 @@
 # 基于 Ryu + FlowManager 的 SDN QoS 管理实验平台
 
-本仓库源自硕士论文项目，现已拓展为围绕 FlowManager 图形界面与 Ryu QoS 扩展的完整实验平台。通过 Mininet 仿真网络、Ryu 控制器与 FlowManager 交互界面，可验证按流/按分类的 QoS 保障方案，并产出可用于论文写作的实验数据与图表。
+本仓库通过 Mininet 仿真网络、Ryu 控制器与 FlowManager 交互界面，可验证按流/按分类的 QoS 保障方案，并产出可用于论文写作的实验数据与图表。
 
 ## 功能亮点
 
@@ -147,10 +147,8 @@ sdn_qos/
 - `docs/objectives/README.md`：针对 Objective 1-5 的 FlowManager 操作步骤、页面字段取值与常见问题（含 Dashboard/Meter/Flow Form 字段填写示例）。
 - `docs/objectives/OBJECTIVE5_REPORT_TEMPLATE.md`：论文写作提纲，涵盖架构说明、实验设计、结果分析与总结。
 
-## 许可证与联系方式
+## 许可证
 
 - 许可证：开源软件（保留原作者版权声明）。
-- 联系方式：Amir Ashoori（a.ashoori7@gmail.com）。
-- 若在复现过程中遇到问题，欢迎在 Issues 中反馈或结合文档中的常见问题排查。
 
 祝顺利完成 Objective 1-5 并写出高质量论文！
