@@ -721,26 +721,34 @@ class FlowManager(app_manager.RyuApp):
         links = [link.to_dict() for link in links_list]
         host_list = get_all_host(self)
 
-        # Filter out hosts that belong to switches no longer present.  Using
-        # the (dpid, port_no) tuple keeps us compatible with newer versions of
-        # Ryu where MAC addresses may be absent or formatted differently.
-        active_ports = {(p.dpid, p.port_no)
-                        for switch in switch_list for p in switch.ports}
+        # Filter out hosts that belong to switches no longer present.  Some
+        # Ryu releases keep track of the switch port using the interface MAC
+        # address, others rely on the (dpid, port_no) tuple.  Gather both so we
+        # can recognise the host regardless of which representation is used.
+        ports = [p for switch in switch_list for p in getattr(switch, 'ports', [])]
+        port_macs = {
+            getattr(p, 'hw_addr', None) for p in ports if getattr(p, 'hw_addr', None)
+        }
+        port_keys = {
+            (getattr(p, 'dpid', None), getattr(p, 'port_no', None))
+            for p in ports if getattr(p, 'dpid', None) is not None and getattr(p, 'port_no', None) is not None
+        }
 
         def host_is_active(host):
             port = getattr(host, 'port', None)
             if not port:
                 return False
 
-            # Some host.port objects expose dpid/port_no as properties while
-            # others expose them as attributes. getattr covers both cases.
+            hw_addr = getattr(port, 'hw_addr', None)
+            if hw_addr and hw_addr in port_macs:
+                return True
+
             dpid = getattr(port, 'dpid', None)
             port_no = getattr(port, 'port_no', None)
+            if dpid is not None and port_no is not None:
+                return (dpid, port_no) in port_keys
 
-            if dpid is None or port_no is None:
-                return False
-
-            return (dpid, port_no) in active_ports
+            return False
 
         hosts = [h.to_dict() for h in host_list if host_is_active(h)]
 
