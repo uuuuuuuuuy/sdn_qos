@@ -35,6 +35,7 @@ from ryu.lib.packet import ether_types
 
 # for topology discovery
 #from ryu.topology import event
+from ryu.topology import event as topo_event
 from ryu.topology.api import get_all_switch, get_all_link, get_all_host
 
 from .webapi import WebApi
@@ -84,6 +85,7 @@ class FlowManager(app_manager.RyuApp):
         self.ofctl = ofctl_v1_3
         self.rpc_clients = []
         self.tracker = Tracker()
+        self._hosts_by_mac = {}
 
         # Data exchanged with WebApi
         wsgi.register(WebApi,
@@ -713,6 +715,33 @@ class FlowManager(app_manager.RyuApp):
 
     # @set_ev_cls(event.EventSwitchEnter)
 
+    def _remember_host(self, host):
+        """Track the latest Host object keyed by its MAC address."""
+
+        if host is None:
+            return
+
+        mac = getattr(host, 'mac', None)
+        if not mac:
+            return
+
+        self._hosts_by_mac[mac] = host
+
+    @set_ev_cls(topo_event.EventHostAdd)
+    def _event_host_add(self, ev):
+        self._remember_host(ev.host)
+
+    @set_ev_cls(topo_event.EventHostMove)
+    def _event_host_move(self, ev):
+        # ``EventHostMove`` carries the updated host details in ``dst``.
+        self._remember_host(getattr(ev, 'dst', None))
+
+    @set_ev_cls(topo_event.EventHostDelete)
+    def _event_host_delete(self, ev):
+        mac = getattr(ev.host, 'mac', None)
+        if mac in self._hosts_by_mac:
+            del self._hosts_by_mac[mac]
+
     def get_topology_data(self):
         """Get Topology Data
         """
@@ -736,10 +765,19 @@ class FlowManager(app_manager.RyuApp):
                 if isinstance(dpid_value, int):
                     endpoint_dict['dpid'] = ryu_dpid.dpid_to_str(dpid_value)
             links.append(link_dict)
-        host_list = get_all_host(self)
+        # Host information can be obtained from the Switches app via
+        # ``get_all_host`` or, if that call returns an empty list (which may
+        # happen briefly after topology changes), from the events that Flow
+        # Manager subscribes to.  We merge both sources to ensure the UI can
+        # always render the latest host view.
+        host_list = get_all_host(self) or []
+        for host in host_list:
+            self._remember_host(host)
+
+        host_records = list(self._hosts_by_mac.values())
 
         hosts = []
-        for host in host_list:
+        for host in host_records:
             port = getattr(host, 'port', None)
             if port is None:
                 continue
