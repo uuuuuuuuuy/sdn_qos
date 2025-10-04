@@ -68,7 +68,7 @@
 
 ### 前置步骤：确认 OVSDB 地址绑定
 
-- `objective1_start_controller.sh` 启动后会在后台自动检测 `/stats/switches`，并为 `SDN_QOS_OVSDB_DPIDS` 环境变量列出的交换机（默认 `0000000000000001 0000000000000002 0000000000000003`）写入 `SDN_QOS_OVSDB_ADDR`（默认 `tcp:127.0.0.1:6632`）。终端将输出 “自动 OVSDB 绑定助手已启动” 等提示，可通过设置 `SDN_QOS_AUTO_BIND_OVSDB=0` 禁用，或通过 `SDN_QOS_OVSDB_TIMEOUT`、`SDN_QOS_OVSDB_POLL_INTERVAL` 调整等待时长。
+- `objective1_start_controller.sh` 启动后会在后台自动检测 `/stats/switches`，并为 `SDN_QOS_OVSDB_DPIDS` 环境变量列出的交换机（默认 `0000000000000001 0000000000000002 0000000000000003`）写入 `SDN_QOS_OVSDB_ADDR`（默认 `tcp:127.0.0.1:6632`）。终端将输出 “自动 OVSDB 绑定助手已启动” 等提示，可通过设置 `SDN_QOS_AUTO_BIND_OVSDB=0` 禁用，或通过 `SDN_QOS_OVSDB_TIMEOUT`、`SDN_QOS_OVSDB_POLL_INTERVAL` 调整等待时长。若在日志中看到 `ovs-vsctl: no managers defined` 等信息，可忽略，脚本会继续设置新的管理通道。
 - 如需手动重试或在自定义拓扑中补充更多交换机，可使用下列方式：
   - **终端命令**：
     ```bash

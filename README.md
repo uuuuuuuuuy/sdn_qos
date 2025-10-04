@@ -84,7 +84,7 @@ sdn_qos/
    ```bash
    ./scripts/objectives/objective1_start_controller.sh
    ```
-   该脚本会激活虚拟环境、自动清理并开放 `ptcp:6632` 管理端口，并在后台尝试为默认 DPID 写入 `ovsdb_addr`（可通过 `SDN_QOS_AUTO_BIND_OVSDB` 等环境变量控制）；必要时会提示输入 `sudo` 密码。
+   该脚本会激活虚拟环境、自动清理并开放 `ptcp:6632` 管理端口，并在后台尝试为默认 DPID 写入 `ovsdb_addr`（可通过 `SDN_QOS_AUTO_BIND_OVSDB` 等环境变量控制）；必要时会提示输入 `sudo` 密码。若终端提示 `ovs-vsctl: no managers defined` 等信息，可忽略，脚本会继续设置新的管理通道。
 2. **启动树形 Mininet 拓扑**：
    ```bash
    ./scripts/objectives/objective2_launch_mininet.sh

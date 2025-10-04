@@ -29,10 +29,10 @@ MSG
 # 确保 OVSDB 管理通道开启，便于 FlowManager 的 QoS 模块连接
 if command -v ovs-vsctl >/dev/null 2>&1; then
   if (( EUID != 0 )) && command -v sudo >/dev/null 2>&1; then
-    sudo ovs-vsctl --if-exists del-manager
+    sudo ovs-vsctl del-manager || true
     sudo ovs-vsctl set-manager ptcp:6632
   else
-    ovs-vsctl --if-exists del-manager
+    ovs-vsctl del-manager || true
     ovs-vsctl set-manager ptcp:6632
   fi
 else
