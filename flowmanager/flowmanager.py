@@ -25,6 +25,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib import ofctl_v1_3
 from ryu.lib import ofctl_utils
+from ryu.lib import dpid as ryu_dpid
 from ryu import utils
 
 # for packet content
@@ -716,9 +717,25 @@ class FlowManager(app_manager.RyuApp):
         """Get Topology Data
         """
         switch_list = get_all_switch(self)
-        switches = [switch.to_dict() for switch in switch_list]
+        switches = []
+        for switch in switch_list:
+            switch_dict = switch.to_dict()
+            dpid = switch_dict.get('dpid')
+            if isinstance(dpid, int):
+                switch_dict['dpid'] = ryu_dpid.dpid_to_str(dpid)
+            switches.append(switch_dict)
         links_list = get_all_link(self)
-        links = [link.to_dict() for link in links_list]
+        links = []
+        for link in links_list:
+            link_dict = link.to_dict()
+            for endpoint in ('src', 'dst'):
+                endpoint_dict = link_dict.get(endpoint)
+                if not isinstance(endpoint_dict, dict):
+                    continue
+                dpid_value = endpoint_dict.get('dpid')
+                if isinstance(dpid_value, int):
+                    endpoint_dict['dpid'] = ryu_dpid.dpid_to_str(dpid_value)
+            links.append(link_dict)
         host_list = get_all_host(self)
 
         hosts = []
@@ -742,8 +759,13 @@ class FlowManager(app_manager.RyuApp):
             # from drawing the host nodes.
             if 'dpid' not in port_dict or port_dict['dpid'] is None:
                 port_dict['dpid'] = dpid
+            dpid_str = port_dict.get('dpid')
+            if isinstance(dpid_str, int):
+                port_dict['dpid'] = ryu_dpid.dpid_to_str(dpid_str)
             if 'port_no' not in port_dict or port_dict['port_no'] is None:
                 port_dict['port_no'] = port_no
+            if isinstance(port_dict.get('port_no'), str) and port_dict['port_no'].isdigit():
+                port_dict['port_no'] = int(port_dict['port_no'])
 
             host_dict['port'] = port_dict
             hosts.append(host_dict)
