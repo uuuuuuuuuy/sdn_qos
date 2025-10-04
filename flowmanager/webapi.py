@@ -32,6 +32,25 @@ class WebApi(ControllerBase):
         self.rpc_clients = data["rpc_clients"]
         self.rootdir = os.path.dirname(os.path.abspath(__file__))
 
+    def _serve_static(self, filename):
+        """Return a response for the requested static asset."""
+
+        if not filename:
+            filename = "index.html"
+
+        # Normalise the requested path to prevent directory traversal and
+        # ensure the file remains under the FlowManager package directory.
+        normalized = os.path.normpath(f"/{filename}").lstrip("/\\")
+        abs_path = os.path.join(self.rootdir, normalized)
+
+        if os.path.commonpath([self.rootdir, abs_path]) != self.rootdir:
+            return Response(status=403)
+
+        if not os.path.isfile(abs_path):
+            return Response(status=404)
+
+        return self.make_response(abs_path)
+
     def make_response(self, filename):
         filetype, _ = mimetypes.guess_type(filename)
         if not filetype:
@@ -168,13 +187,14 @@ class WebApi(ControllerBase):
     def get_filename(self, req, filename, **_kwargs):
         """Get monitoring information from ofctl_rest app
         """
-        if (filename == "" or filename == None):
-            filename = "index.html"
-        try:
-            filename = os.path.join(self.rootdir, filename)
-            return self.make_response(filename)
-        except IOError:
-            return Response(status=400)
+        return self._serve_static(filename)
+
+    @route('monitor', '/flowmanager', methods=['GET'])
+    @route('monitor', '/flowmanager/{filename:.*}', methods=['GET'])
+    def get_flowmanager_filename(self, req, filename=None, **_kwargs):
+        """Serve static assets under the /flowmanager prefix."""
+
+        return self._serve_static(filename)
 
     @websocket('monitor', '/ws')
     def websocket_handler(self, ws):
