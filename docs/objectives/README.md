@@ -66,21 +66,22 @@
 
 目标是基于 FlowManager 创建“普通业务/拥塞业务”两套可切换配置，确保跨层关键流量（示例为 `h1→h4` 的 UDP 5002）优先。
 
-### 前置步骤：为交换机注册 OVSDB 地址
+### 前置步骤：确认 OVSDB 地址绑定
 
-1. **写入 OVSDB 地址**：
-   - 方式一（终端）：在控制器主机执行
-     ```bash
-     for dpid in 0000000000000001 0000000000000002 0000000000000003; do
-       curl -X PUT \
-         http://127.0.0.1:8080/v1.0/conf/switches/${dpid}/ovsdb_addr \
-         -d '"tcp:127.0.0.1:6632"'
-     done
-     ```
-   - 方式二（FlowManager）：打开 `messages.html` → `Config` 标签，依次选择 `Switch ID`，在 `Rest URL` 输入 `/v1.0/conf/switches/<dpid>/ovsdb_addr`，`Method=PUT`，`Data` 填写 `"tcp:127.0.0.1:6632"` 后点击 `Send`。
-2. **验证写入结果**：将 `Method` 切换为 `GET` 再次发送，或在终端运行 `curl -X GET http://127.0.0.1:8080/v1.0/conf/switches/<dpid>/ovsdb_addr`，返回值应为 `"tcp:127.0.0.1:6632"`。若缺失该设置，后续在 FlowManager 配置 QoS 时会看到 `result: failure, details: ovs_bridge is not exists` 的错误提示，须重新写入后再试。
+- `objective1_start_controller.sh` 启动后会在后台自动检测 `/stats/switches`，并为 `SDN_QOS_OVSDB_DPIDS` 环境变量列出的交换机（默认 `0000000000000001 0000000000000002 0000000000000003`）写入 `SDN_QOS_OVSDB_ADDR`（默认 `tcp:127.0.0.1:6632`）。终端将输出 “自动 OVSDB 绑定助手已启动” 等提示，可通过设置 `SDN_QOS_AUTO_BIND_OVSDB=0` 禁用，或通过 `SDN_QOS_OVSDB_TIMEOUT`、`SDN_QOS_OVSDB_POLL_INTERVAL` 调整等待时长。
+- 如需手动重试或在自定义拓扑中补充更多交换机，可使用下列方式：
+  - **终端命令**：
+    ```bash
+    for dpid in 0000000000000001 0000000000000002 0000000000000003; do
+      curl -X PUT \
+        http://127.0.0.1:8080/v1.0/conf/switches/${dpid}/ovsdb_addr \
+        -d '"tcp:127.0.0.1:6632"'
+    done
+    ```
+  - **FlowManager Messages 页面**：切换到 `Config` 标签，依次选择 `Switch ID`，填写 `Rest URL=/v1.0/conf/switches/<dpid>/ovsdb_addr`、`Method=PUT`、`Data="tcp:127.0.0.1:6632"` 后点击 `Send`。
+- **验证结果**：将 `Method` 切换为 `GET` 继续发送，或在终端运行 `curl -X GET http://127.0.0.1:8080/v1.0/conf/switches/<dpid>/ovsdb_addr`。若响应仍为空或提示 `ovs_bridge is not exists`，请确认交换机已出现在 Dashboard `Switch ID(s)` 下拉菜单中，或延长自动绑定等待时长后再次执行。
 
-完成前置步骤后再继续下表中的配置流程。
+确认 OVSDB 地址生效后，再继续下表中的配置流程。
 
 | 步骤 | 页面 | 字段 | 示例值 / 说明 |
 | --- | --- | --- | --- |

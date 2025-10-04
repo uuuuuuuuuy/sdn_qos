@@ -63,8 +63,9 @@ sdn_qos/
    make
    ```
 5. **配置环境变量**：如使用本仓库根目录下的虚拟环境，可在脚本中自动识别；否则请设置 `SDN_QOS_VENV` 指向对应路径。
-6. **注册 OVSDB 地址**：
-   - 启动控制器与拓扑后，需为树形拓扑中的每台交换机（示例 DPID：`0000000000000001`、`0000000000000002`、`0000000000000003`）写入 OVSDB 地址，以便 `rest_qos` 成功建立 `OVSBridge`。可以在终端执行：
+6. **确认 OVSDB 地址绑定**：
+   - `objective1_start_controller.sh` 会在后台轮询 `/stats/switches`，并自动为 `SDN_QOS_OVSDB_DPIDS` 指定的交换机写入 `SDN_QOS_OVSDB_ADDR`（默认值为 `tcp:127.0.0.1:6632`，DPID 列表为 `0000000000000001 0000000000000002 0000000000000003`）。如需禁用此行为，可在运行脚本前设置 `SDN_QOS_AUTO_BIND_OVSDB=0`；如需自定义地址或 DPID，请调整 `SDN_QOS_OVSDB_ADDR`、`SDN_QOS_OVSDB_DPIDS`、`SDN_QOS_API_BASE` 等环境变量。
+   - 若自动绑定失败或需要手动重试，可在终端执行：
      ```bash
      for dpid in 0000000000000001 0000000000000002 0000000000000003; do
        curl -X PUT \
@@ -72,8 +73,8 @@ sdn_qos/
          -d '"tcp:127.0.0.1:6632"'
      done
      ```
-   - 或在 FlowManager `Messages` 页面的 `Config` 标签选择对应 `Switch ID`，`Rest URL=/v1.0/conf/switches/<dpid>/ovsdb_addr`，`Method=PUT`，`Data` 填写 `"tcp:127.0.0.1:6632"` 并依次提交。
-   - 可通过同一页面切换到 `Method=GET`，或运行 `curl -X GET http://127.0.0.1:8080/v1.0/conf/switches/<dpid>/ovsdb_addr` 验证返回值是否为 `"tcp:127.0.0.1:6632"`。若遗漏该步骤，FlowManager 调用 QoS 功能时会收到 `result: failure, details: ovs_bridge is not exists` 的错误提示。
+     或在 FlowManager `Messages` 页面的 `Config` 标签选择对应 `Switch ID`，`Rest URL=/v1.0/conf/switches/<dpid>/ovsdb_addr`，`Method=PUT`，`Data` 填写 `"tcp:127.0.0.1:6632"` 并依次提交。
+   - 可通过同一页面切换为 `Method=GET`，或运行 `curl -X GET http://127.0.0.1:8080/v1.0/conf/switches/<dpid>/ovsdb_addr` 验证返回值是否正确。若仍返回 `result: failure, details: ovs_bridge is not exists`，请确认交换机已与控制器建立连接或延长自动绑定超时时间（`SDN_QOS_OVSDB_TIMEOUT`）。
 
 完成以上步骤后，请按照下列流程运行项目：
 
@@ -83,7 +84,7 @@ sdn_qos/
    ```bash
    ./scripts/objectives/objective1_start_controller.sh
    ```
-   该脚本会激活虚拟环境、自动清理并开放 `ptcp:6632` 管理端口，必要时会提示输入 `sudo` 密码。
+   该脚本会激活虚拟环境、自动清理并开放 `ptcp:6632` 管理端口，并在后台尝试为默认 DPID 写入 `ovsdb_addr`（可通过 `SDN_QOS_AUTO_BIND_OVSDB` 等环境变量控制）；必要时会提示输入 `sudo` 密码。
 2. **启动树形 Mininet 拓扑**：
    ```bash
    ./scripts/objectives/objective2_launch_mininet.sh
