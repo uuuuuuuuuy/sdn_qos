@@ -721,14 +721,28 @@ class FlowManager(app_manager.RyuApp):
         links = [link.to_dict() for link in links_list]
         host_list = get_all_host(self)
 
-        # To remove hosts that are not removed by controller
-        ports = []
-        for switch in switch_list:
-            ports += switch.ports
-        port_macs = [p.hw_addr for p in ports]
-        n_host_list = [h for h in host_list if h.port.hw_addr in port_macs]
+        # Filter out hosts that belong to switches no longer present.  Using
+        # the (dpid, port_no) tuple keeps us compatible with newer versions of
+        # Ryu where MAC addresses may be absent or formatted differently.
+        active_ports = {(p.dpid, p.port_no)
+                        for switch in switch_list for p in switch.ports}
 
-        hosts = [h.to_dict() for h in n_host_list]
+        def host_is_active(host):
+            port = getattr(host, 'port', None)
+            if not port:
+                return False
+
+            # Some host.port objects expose dpid/port_no as properties while
+            # others expose them as attributes. getattr covers both cases.
+            dpid = getattr(port, 'dpid', None)
+            port_no = getattr(port, 'port_no', None)
+
+            if dpid is None or port_no is None:
+                return False
+
+            return (dpid, port_no) in active_ports
+
+        hosts = [h.to_dict() for h in host_list if host_is_active(h)]
 
         return {"switches": switches, "links": links, "hosts": hosts}
 
