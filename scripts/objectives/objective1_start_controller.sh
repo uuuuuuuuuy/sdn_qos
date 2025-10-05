@@ -138,7 +138,7 @@ exec ryu-manager \
   ryu.app.ws_topology \
   ryu.app.ofctl_rest \
   ryu.app.gui_topology.gui_topology \
-  ryu.app.simple_switch_13 \
+  ryu_qos_apps.qos_simple_switch_13 \
   ryu_qos_apps.rest_conf_switch \
   ryu_qos_apps.rest_qos \
   flowmanager.flowmanager
