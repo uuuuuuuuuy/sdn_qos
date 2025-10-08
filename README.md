@@ -10,6 +10,15 @@
 - **自动化图表生成**：`scripts/tools/plot_metrics.py` 与 `scripts/objectives/objective4_plot.py` 可批量输出端口/队列/表项曲线与流表 Top-N、QoS 配置等图表，为 Objective 4/5 提供论文级素材。
 - **论文支撑材料**：整理实验流程、模板与常见问题，方便撰写技术报告或论文。
 
+## 项目流程与仓库内容的对应关系
+
+- **Planning（规划）**：README 中的“部署准备”“运行流程”章节给出了所需依赖、启动脚本与运行顺序，可直接作为实验规划与执行计划。
+- **Research（调研）**：仓库主要聚焦实施与验证环节，若需撰写背景调研，请结合外部文献补充，随后可与下述实现步骤衔接。
+- **Design（设计）**：`docs/objectives/README.md` 描述各 Objective 的拓扑、QoS 策略与表单填写要点，等同于详细的网络/策略设计说明。
+- **Development（开发）**：控制器侧的 `flowmanager/`、`ryu_qos_apps/` 代码实现了拓扑发现、主机缓存、QoS REST 接口与前端数据服务；启动脚本会自动加载这些模块进入 Ryu。
+- **Test（测试验证）**：README 与手册提供了 `pingall`、`iperf3`、`export_metrics.py` 等测试命令，用于连通性与性能验证，支撑流程图中的测试阶段。
+- **Report & Presentation（总结汇报）**：`docs/objectives/OBJECTIVE5_REPORT_TEMPLATE.md` 及 `objective5_generate_assets.py` 自动化脚本可生成图表与压缩包，帮助整理实验结果并撰写报告。
+
 ## 仓库结构概览
 
 ```text
