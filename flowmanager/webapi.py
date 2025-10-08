@@ -37,6 +37,8 @@ class WebApi(ControllerBase):
 
         if not filename:
             filename = "index.html"
+        elif filename.endswith('/'):
+            filename = f"{filename.rstrip('/')}" + "/index.html"
 
         # Normalise the requested path to prevent directory traversal and
         # ensure the file remains under the FlowManager package directory.

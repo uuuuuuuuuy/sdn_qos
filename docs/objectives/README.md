@@ -8,13 +8,13 @@
 
 | 页面（文件） | 用途 | 关键字段与示例值 |
 | --- | --- | --- |
-| **Dashboard** (`index.html`) | 查看全局统计、切换交换机 | `Switch ID(s)`：优先选择核心交换机 `0000000000000001`（`s1`），也可在对比阶段切换 `s2/s3`；`Refresh Interval`：保持默认 `5` 秒；端口卡片右上角 `↔` 可放大以截图 |
-| **Topology** (`topology.html`) | 验证拓扑加载情况 | 画布左下角 `Lock Layout`：关闭以手动拖拽；拖拽确保 `s1` 位于中心，`s2`、`s3` 分别连接 `h1/h2`、`h3/h4`，右侧面板确认各主机 `ipv4=10.0.0.x` |
-| **Flow Tables** (`flows.html`) | 检查当前流表 | 顶部 `Switches` 依次检查 `s1`、`s2`、`s3`；`Table Id` 筛选 `0`；确认 `simple_switch_13` 学习到的 `in_port` ↔ `OUTPUT` 条目 |
-| **Flow Form** (`flowform.html`) | 新增/修改流表项 | `Flow Operation=Add`；`Table Id=0`；`Priority`：关键业务示例填 `200`；`Match Fields`：`in_port=1`、`eth_type=0x0800`、`ip_proto=17`、`udp_dst=5002`（对应 `h1→h4` UDP 流）；`Apply Actions`：`OUTPUT→2`（`s1` 上连接 `s3` 的端口，可在 `Topology` 面板确认编号），必要时新增 `SET_QUEUE→{"queue_id":1}`；拥塞场景填写 `Goto Meter=1` |
+| **Home** (`index.html`) | 查看全局统计、切换交换机 | “Switch ID(s)” 卡片优先选择核心交换机 `0000000000000001`（`s1`），也可在对比阶段切换 `s2/s3`；`Refresh Interval` 保持默认 `5` 秒；端口卡片右上角 `↔` 可放大以截图 |
+| **Topology** (`topology.html`) | 验证拓扑加载情况 | 工具条按钮 `Lock Layout` 关闭后可自由拖拽；确认画布中 `s1` 位于中心，`s2`、`s3` 分别连接 `h1/h2`、`h3/h4`，右侧面板显示各主机 `IPv4 = 10.0.0.x` |
+| **Flows**（页面标题 *Flow Tables*，`flows.html`） | 检查当前流表 | 顶部下拉 `Switches` 依次检查 `s1`、`s2`、`s3`；`Table Id` 选择 `0`；确认 `simple_switch_13` 学习到的 `in_port` ↔ `OUTPUT` 条目 |
+| **Flow Control**（页面标题 *Flow Form*，`flowform.html`） | 新增/修改流表项 | `Flow Operation=Add`；`Table Id=0`；`Priority`：关键业务示例填 `200`；`Match Fields`：`in_port=1`、`eth_type=0x0800`、`ip_proto=17`、`udp_dst=5002`（对应 `h1→h4` UDP 流）；`Apply Actions`：`OUTPUT→2`（`s1` 上连接 `s3` 的端口，可在 `Topology` 面板确认编号），必要时新增 `SET_QUEUE→{"queue_id":1}`；拥塞场景填写 `Goto Meter=1` |
 | **Meter Control** (`meterform.html`) | 创建速率限制 | `Meter ID=1`；`Meter Bands[0]`：`Band Type=DROP`，勾选 `Rate in Kbps` 后 `Rate=20000`、`Burst Size=5000`；提交后在页面下方确认返回 `status: success` |
-| **Configuration** (`config.html`) | 备份/恢复配置 | `Save`：`File Name=baseline`/`priority`/`classification`；`Restore`：`Choose File` 选中 `.bk` 后点击 `Restore` |
-| **Messages** (`messages.html`) | 采集日志与统计 | `Stats` 标签页 `Switch=s1`，`Stat Type=Port` 或 `Flow`；`Messages` 标签用于导出 `flow_removed` 记录 |
+| **Configuration** (`config.html`) | 备份/恢复配置 | “Config Scope” 选择 `--ALL--` 后，`Save` 区域输入 `baseline`/`priority`/`classification` 并点击 `Save`；`Restore` 区域 `Choose File` 选中 `.bk` 后点击 `Restore` |
+| **Messages** (`messages.html`) | 采集日志与统计 | `Stats` 标签页选择 `Switch=s1`，`Stat Type=Port` 或 `Flow`；`Messages` 标签用于导出 `flow_removed` 记录 |
 
 建议在浏览器中同时打开 FlowManager 多个标签页，以便在配置与监控之间快速切换。
 
@@ -23,11 +23,11 @@
 ## Objective 1：搭建测试环境
 
 1. **启动控制器**：在终端运行 `./scripts/objectives/objective1_start_controller.sh`，脚本会启用 FlowManager、拓扑可视化与 QoS REST 应用，并自动开放 OVSDB 管理端口 `ptcp:6632`；首次执行可能提示输入 `sudo` 密码。
-2. **确认服务可用**：等待脚本输出 `HTTP serving on http://0.0.0.0:8080`，随后在浏览器访问 `http://<控制器 IP>:8080/flowmanager/index.html`。
+2. **确认服务可用**：等待脚本输出 `HTTP serving on http://0.0.0.0:8080`，随后在浏览器访问 `http://<控制器 IP>:8080/flowmanager/index.html`（若浏览器缓存旧版本，可暂时访问 `/home/index.html` 验证静态资源加载情况）。
 3. **验证基础状态采集**：
-   - Dashboard 页面的 `Switch ID(s)` 下拉菜单在交换机未上线时为空，属正常现象；上线后请选择 `0000000000000001`。
+   - Home 页面的 `Switch ID(s)` 下拉菜单在交换机未上线时为空，属正常现象；上线后请选择 `0000000000000001`。
    - 保持 `Refresh Interval=5` 秒，检查 `Ports stats` 与 `Flow Summary` 卡片时间戳是否更新。尚无交换机连接时会显示 “No data to display...”，即可判定 Objective 1 完成。
-4. **常见排查**：Dashboard 右上角 `Messages` 链接可查看日志；若页面无法访问，请检查 8080 端口、防火墙及浏览器缓存（可按 `Ctrl+F5`）。
+4. **常见排查**：Home 页菜单中的 `Messages` 链接可查看日志；若页面无法访问，请检查 8080 端口、防火墙及浏览器缓存（可按 `Ctrl+F5`）。
 
 > 快照建议：
 > ```bash
@@ -46,8 +46,8 @@
 2. **连通性测试**：在 Mininet CLI 运行 `pingall`，输出 `*** Results: 0% dropped` 即可确认跨层互通，可继续保留 CLI 以便后续 `iperf3` 测试。
 3. **拓扑确认**：刷新 `topology.html`，应出现 `s1` 位于中心、`s2`/`s3` 分别连接 `h1/h2` 与 `h3/h4` 的结构。点击节点验证 `s1` 具备两条南向链路，主机属性面板显示 `ipv4=10.0.0.x`。
 4. **流表与统计检查**：
-   - 打开 `flows.html`，依次选择 `s1`、`s2`、`s3`，确认 `simple_switch_13` 为每个端口学习到 `in_port` ↔ `OUTPUT` 条目，尤其是 `s1` 上 `in_port=1` ↔ `OUTPUT:2`（指向 `s3`）。
-   - 在 Dashboard `Ports stats` 中点击 `↔` 放大卡片，关注 `s1-eth1/eth2` 与 `s2-eth1` 等端口 `rx-bytes`/`tx-bytes` 随 `pingall` 增长。如需记录基线值，可点击 `Pause` 停止刷新。
+   - 打开 `flows.html`（菜单项 “Flows”），依次选择 `s1`、`s2`、`s3`，确认 `simple_switch_13` 为每个端口学习到 `in_port` ↔ `OUTPUT` 条目，尤其是 `s1` 上 `in_port=1` ↔ `OUTPUT:2`（指向 `s3`）。
+   - 在 Home 页 “Ports stats” 中点击 `↔` 放大卡片，关注 `s1-eth1/eth2` 与 `s2-eth1` 等端口 `rx-bytes`/`tx-bytes` 随 `pingall` 增长。如需记录基线值，可点击 `Pause` 停止刷新。
 5. **REST 接口验证（可选）**：打开浏览器开发者工具 Network 面板，确认周期性请求 `GET /flowmanager/data?portstat=0000000000000001` 返回 JSON 数据。
 
 > 基线采集示例：
@@ -78,8 +78,8 @@
         -d '"tcp:127.0.0.1:6632"'
     done
     ```
-  - **FlowManager Messages 页面**：切换到 `Config` 标签，依次选择 `Switch ID`，填写 `Rest URL=/v1.0/conf/switches/<dpid>/ovsdb_addr`、`Method=PUT`、`Data="tcp:127.0.0.1:6632"` 后点击 `Send`。
-- **验证结果**：将 `Method` 切换为 `GET` 继续发送，或在终端运行 `curl -X GET http://127.0.0.1:8080/v1.0/conf/switches/<dpid>/ovsdb_addr`。若响应仍为空或提示 `ovs_bridge is not exists`，请确认交换机已出现在 Dashboard `Switch ID(s)` 下拉菜单中，或延长自动绑定等待时长后再次执行。
+  - **FlowManager “Messages” 页面**：切换到 `Config` 标签，依次选择 `Switch ID`，填写 `Rest URL=/v1.0/conf/switches/<dpid>/ovsdb_addr`、`Method=PUT`、`Data="tcp:127.0.0.1:6632"` 后点击 `Send`。
+- **验证结果**：将 `Method` 切换为 `GET` 继续发送，或在终端运行 `curl -X GET http://127.0.0.1:8080/v1.0/conf/switches/<dpid>/ovsdb_addr`。若响应仍为空或提示 `ovs_bridge is not exists`，请确认交换机已出现在 Home 页 “Switch ID(s)” 下拉菜单中，或延长自动绑定等待时长后再次执行。
 
 确认 OVSDB 地址生效后，再继续下表中的配置流程。
 
@@ -101,11 +101,11 @@
 |   |  | `Match Fields` | `in_port=1`（来自 `s2`）、`eth_type=0x0800`、`ip_proto=17`、`udp_dst=5002` |
 |   |  | `Apply Actions[0]` | `OUTPUT`，`Value=2`（发往 `s3`/`h4` 的端口，具体编号以 `Topology` 页面为准） |
 |   |  | `Apply Actions[1]`（可选） | `SET_QUEUE`，`Value={"queue_id":1}`；需提前使用 `ovs-vsctl` 在 `s1-eth2` 上创建队列 |
-|   |  | 提交后验证 | `flows.html` 中应出现 `priority=200`、`cookie=0x1` 的条目，`byte_count` 随 UDP 业务增长 |
+|   |  | 提交后验证 | `flows.html`（菜单 “Flows”）中应出现 `priority=200`、`cookie=0x1` 的条目，`byte_count` 随 UDP 业务增长 |
 | 4 | `flowform.html` | 普通业务流 | `Priority=100`；`Match Fields`：保留 `in_port=1`、`eth_type=0x0800`；若需限制 TCP，可补充 `ip_proto=6` |
 |   |  | `Goto Meter` | 填写 `1`，使普通业务流量进入上一步创建的 Meter |
 |   |  | `Apply Actions[0]` | `OUTPUT`，`Value=2`（保持与关键业务相同的出口） |
-|   |  | 提交后验证 | `flows.html` 中出现 `priority=100` 的条目，普通业务 `byte_count` 将受 Meter 速率限制 |
+|   |  | 提交后验证 | `flows.html`（菜单 “Flows”）中出现 `priority=100` 的条目，普通业务 `byte_count` 将受 Meter 速率限制 |
 | 5 | `config.html` | 备份拥塞策略 | `File Name=priority`，点击 `Save` 下载 `priority.bk` |
 
 完成后，可在 Mininet 中执行：
@@ -118,7 +118,7 @@ iperf3 -c 10.0.0.4 -u -b 30M -t 30 -p 5002  # 在 h1 上发起
 iperf3 -s -p 5003 &  # 在 h4 上启动
 iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
 ```
-结合 Dashboard `Ports stats` 与 `messages.html -> Stats`，验证关键业务吞吐保持、普通业务受限。
+结合 Home 页 “Ports stats” 与 “Messages” 页面 `Stats` 标签，验证关键业务吞吐保持、普通业务受限。
 
 > 自动化采集建议：
 > ```bash
@@ -145,7 +145,7 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
    - 建议将 `.bk` 文件与实验脚本统一放入 `docs/objectives/configs/`（手动创建目录）。
 2. **执行三轮实验**：每轮实验遵循以下流程：
    1. 在 `config.html` 选择 `Switch ID=0000000000000001`，点击 `Choose File` 导入目标 `.bk` 并执行 `Restore`，等待 `status: success`。
-   2. 返回 Dashboard，`Switch ID(s)` 选择 `0000000000000001`，点击卡片右上角 `⟳` 强制刷新初始统计。
+   2. 返回 Home 页面，`Switch ID(s)` 选择 `0000000000000001`，点击卡片右上角 `⟳` 强制刷新初始统计。
    3. 在 Mininet CLI 中运行与 Objective 3 相同的流量脚本，每轮持续不少于 30 秒；测试完毕后使用 `jobs` + `kill` 关闭后台 `iperf3` 进程。
 3. **采集统计数据**：
    - 每轮实验结束前运行：
@@ -159,8 +159,8 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
        --prefix priority_run
      ```
      会在 `docs/objectives/data/` 下生成 `priority_run_ports.csv`、`_flows.csv`、`_queues.csv`、`_meters.csv`、`_tables.csv` 等文件，以及拓扑/端口描述快照。为 baseline、classification 轮次更换 `--prefix` 后重复执行即可。
-   - 如需补充截图，可继续在 Dashboard `Ports stats` 中点击 `↔` 放大 → `Pause` 固定值后复制。
-   - `messages.html -> Stats`：`Switch=s1`、`Stat Type=Port` 或 `Flow`，点击 `Start` 收集曲线，结束时点击 `Stop` 并通过浏览器“另存为”保存 PNG/SVG。
+   - 如需补充截图，可继续在 Home 页 “Ports stats” 中点击 `↔` 放大 → `Pause` 固定值后复制。
+   - “Messages” 页面 `Stats` 标签：`Switch=s1`、`Stat Type=Port` 或 `Flow`，点击 `Start` 收集曲线，结束时点击 `Stop` 并通过浏览器“另存为”保存 PNG/SVG。
 4. **绘制图表与整理归档**：
    - 使用绘图脚本一次生成端口、队列、Meter、表项以及流表 Top-N 图像：
      ```bash
@@ -197,7 +197,7 @@ iperf3 -c 10.0.0.4 -u -b 50M -t 30 -p 5003
 2. **分析指标**：
   - 利用 `objective3_collect_stats.py`、`objective4_collect_stats.py` 输出的 `_flows.csv`、`_tables.csv`、`_meters.csv`、`_queues.csv` 追踪各策略下关键流的 `byte_count`、`lookup_count`、`meter_byte_ps`、`queue_tx_mbps` 等指标，必要时在 pandas 中按 `cookie`/`priority`/`queue_id` 过滤。
   - 结合 `objective4_plot.py` 或 `objective5_generate_assets.py` 生成的端口吞吐、队列速率、Meter 曲线与 `iperf3` 日志中的 `Jitter`、`Lost/Total Datagrams`、`Bandwidth`，说明不同 QoS 配置对业务质量的影响；如启用 `SET_QUEUE`，需同步记录 `ovs-vsctl` 中配置的 `min-rate`、`max-rate`。
-3. **撰写论文**：使用 `docs/objectives/OBJECTIVE5_REPORT_TEMPLATE.md` 作为模板，在“方法”章节插入 `flowform.html`、`meterform.html` 的截图，在“结果”章节引用 Dashboard/Stats 导出的曲线和表格，在“讨论”章节总结 QoS 策略优劣。
+3. **撰写论文**：使用 `docs/objectives/OBJECTIVE5_REPORT_TEMPLATE.md` 作为模板，在“方法”章节插入 `flowform.html`、`meterform.html` 的截图，在“结果”章节引用 Home/Stats 导出的曲线和表格，在“讨论”章节总结 QoS 策略优劣。
 4. **版本管理**：将 `.bk` 配置、CSV、图表与脚本压缩或使用 Git LFS 提交至仓库，并在提交信息中注明对应 Objective 与日期，确保后续复现。
 
 按照以上步骤，即可完全依赖 FlowManager Web UI 完成从环境搭建到结果汇总的全过程。祝研究顺利！
