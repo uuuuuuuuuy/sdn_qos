@@ -100,7 +100,7 @@ sdn_qos/
    ```
    拓扑包含 3 台 OVS 与 3 台主机，满足 Objective 1-4 的验证与统计需求。
 3. **在 FlowManager 中完成配置与采集**：
-   - 浏览器访问 `http://<控制器 IP>:8080/flowmanager/index.html`；如遇浏览器缓存旧资源，可暂时访问 `/home/index.html` 核对页面。
+   - 浏览器访问 `http://<控制器 IP>:8080/flowmanager/`（带末尾 `/` 可触发控制器返回 301 重定向，确保静态资源以 `/flowmanager/...` 路径加载）；如遇浏览器缓存旧资源，可暂时访问 `/home/index.html` 核对页面。
    - 参考 `docs/objectives/README.md`，依序填写 Home/Meter/Flow 表单，并执行 QoS 配置切换、统计导出与 CSV/图表生成。
    - 自动化辅助脚本示例：
      ```bash
@@ -200,10 +200,10 @@ sdn_qos/
    ssh -L 8080:127.0.0.1:8080 mininet@controller.example.com
    ```
    该命令会把本地 `127.0.0.1:8080` 的连接，转发到远程控制器的 `127.0.0.1:8080`，登录成功后保持该 SSH 会话不要断开。
-2. **在本地浏览器访问**：打开浏览器，输入 `http://127.0.0.1:8080/flowmanager/index.html`（若遇 404，可先尝试 `/home/index.html`，随后检查控制器是否加载了仓库内的 FlowManager 版本），即可像在远程主机上本地访问一样使用 WebUI。
+2. **在本地浏览器访问**：打开浏览器，输入 `http://127.0.0.1:8080/flowmanager/`（推荐带末尾 `/`，确保 CSS/JS 以 `/flowmanager/...` 路径加载；若遇 404，可先尝试 `/home/index.html`，随后检查控制器是否加载了仓库内的 FlowManager 版本），即可像在远程主机上本地访问一样使用 WebUI。
 3. **需要转发其他服务端口时**：重复添加 `-L <本地端口>:127.0.0.1:<远程端口>` 选项即可，例如 FlowManager 的 REST API (`8080`) 和 OVSDB (`6632`) 都可按需转发。
 
-若本地已有占用端口，可把 `-L` 前半部分替换为其他未被占用的端口，例如 `-L 18080:127.0.0.1:8080`，然后在浏览器访问 `http://127.0.0.1:18080/flowmanager/index.html`。
+若本地已有占用端口，可把 `-L` 前半部分替换为其他未被占用的端口，例如 `-L 18080:127.0.0.1:8080`，然后在浏览器访问 `http://127.0.0.1:18080/flowmanager/`。
 
 ## 目标执行指南
 

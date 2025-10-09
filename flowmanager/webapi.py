@@ -189,14 +189,28 @@ class WebApi(ControllerBase):
     def get_filename(self, req, filename, **_kwargs):
         """Get monitoring information from ofctl_rest app
         """
-        return self._serve_static(filename)
+        if (filename is None or filename in ('', '.')) and not req.path.endswith('/'):
+            res = Response(status=301)
+            suffix = f"?{req.query_string}" if req.query_string else ''
+            res.location = req.path + '/' + suffix
+            return res
+
+        safe_name = filename or ''
+        return self._serve_static(safe_name)
 
     @route('monitor', '/flowmanager', methods=['GET'])
     @route('monitor', '/flowmanager/{filename:.*}', methods=['GET'])
     def get_flowmanager_filename(self, req, filename=None, **_kwargs):
         """Serve static assets under the /flowmanager prefix."""
 
-        return self._serve_static(filename)
+        if (filename is None or filename in ('', '.')) and not req.path.endswith('/'):
+            res = Response(status=301)
+            suffix = f"?{req.query_string}" if req.query_string else ''
+            res.location = req.path + '/' + suffix
+            return res
+
+        safe_name = filename or ''
+        return self._serve_static(safe_name)
 
     @websocket('monitor', '/ws')
     def websocket_handler(self, ws):
