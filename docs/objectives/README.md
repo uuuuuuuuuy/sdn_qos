@@ -2,25 +2,96 @@
 
 本手册聚焦于借助 FlowManager Web UI 完成项目五个阶段目标。请确保已按照仓库 README 完成依赖安装，并使用脚本启动 Ryu 控制器与 Mininet 拓扑。
 
-## FlowManager 快速索引
+## FlowManager 页面与控件详解
 
-下表列出了在完成各 Objective 时需要访问的页面、必须填写的字段及推荐示例值。示例以仓库提供的树形拓扑（核心交换机 `s1`、汇聚交换机 `s2/s3`、主机 `h1`-`h4`）为基准，可按实际拓扑调整。
+本节按照左侧菜单栏显示的顺序，对 FlowManager 每个页面的标题、控件标签与交互逻辑进行逐项说明，确保阅读时能与浏览器界面逐字对应。页面之间共享同一套菜单导航（位于 `flowmanager/js/mainmenu.js`），每个页面的 `Submit`/`Refresh` 等按钮都会触发相应的 REST 调用或重新绘制。
 
-| 菜单项（`mainmenu.js` 中的锚点文本） | 页面标题 / 主要区域 | 常用控件及其作用（界面上显示的标签文本） |
-| --- | --- | --- |
-| **Home** | 主页卡片 | “Switch ID(s)” 下拉用于选择监控的交换机；“Refresh Interval” 控制卡片自动刷新周期；“Ports stats”“Flow Summary” 等卡片右上角的 `↔` 可展开，`⟳` 可强制刷新，`Pause` 暂停更新以便截图 |
-| **Topology** | 拓扑画布 + 右侧信息栏 | 工具条中的 “Lock Layout” 关闭后可拖拽节点；右侧列表会展示选中交换机/主机的属性（如 `IPv4 = 10.0.0.x`）；画布左上角搜索框可按名称过滤节点 |
-| **Flows** | 页眉 “Flow Tables” | 顶部 “Switches” 下拉依次查看 `s1`、`s2`、`s3`；“Table Id” 默认 `0`；“Refresh” 切换数据源后手动刷新；表格列 `priority`、`cookie`、`match`、`instructions` 用于核对前一步写入的流表 |
-| **Flow Control** | 页眉 “Flow Form” | “Target” 区域的 “Switch ID”“Table ID” 指定写入目标；“Flow Operation” 单选项包括 `Add`、`Modify`、`Delete` 等；“Match Fields” 表格通过 `Match Field`/`Value` 列录入匹配条件；“Instructions” 区域提供 “Goto Meter”“Apply Actions”“Write Actions”“Goto Table” 等控制；底部按钮 “Submit”“Clear” 分别提交或清空表单 |
-| **Groups** | 页眉 “Group Tables” | “Switches” 下拉与 “Group Types” 下拉用于筛选；表格列出组 ID、动作桶等信息（Objective 3-4 可忽略） |
-| **Group Control** | 页眉 “Group Form” | “Target” 区域选择 `Switch ID` 与 `Group ID`，`Group Operation` 指定 `Add/Modify/Delete`，`Buckets` 表格填写动作桶（若实验不涉及组，可跳过） |
-| **Meter Control** | 页眉 “Meter Control” | “Target” 区域的 “Switch ID”“Meter ID” 指定 Meter；“Meter Operation” 单选项设为 `Add`；“Flags” 复选框包括 `Rate in Kbps`、`Rate in pps`、`Do Burst Size`、`Collect Statistics`；“Meter Bands” 表格填写 `Band Type`、`Rate`、`Burst Size`；顶部 “Submit”“Clear” 控制表单提交与重置 |
-| **Meters** | 页眉 “Meter Tables” | “Switches” 下拉切换交换机；表格列 `meter_id`、`flags`、`bands` 用于核对当前 Meter 设置 |
-| **Messages** | 页眉 “Messages” | 标签页 “Stats” 中的 “Switch”“Stat Type” 用于选择统计类型并通过 “Start/Stop” 控制采集；“Config” 标签提供 `Switch ID`、`Rest URL`、`Method`、`Data` 字段以发送 REST 请求；“Message Log” 标签显示控制器返回的通知 |
-| **Configuration** | 页眉 “Configuration Backup/Restore” | “Backup” 区域的 “Select Switches” 多选框用来决定导出范围（默认包含 `--ALL--`）；“Formatted” 复选框可切换 JSON 缩进；“Save” 按钮触发备份；“Restore” 区域的 “Choose Backup File”“Restore” 控制导入 `.bk` 文件 |
-| **About** | 页眉 “About FlowManager” | 展示版本信息及开源协议链接（用于引用信息即可） |
+### Home（菜单链接 “Home”，页面抬头 “RYU Flow Manager v.1.0.0”）
 
-建议在浏览器中同时打开 FlowManager 多个标签页，以便在配置与监控之间快速切换。
+- **“Switch ID(s)” 卡片**：位于页面左上角，逐行列出当前在线交换机的 64 位 DPID（十进制）。点击任意 DPID 会令其高亮，并触发其他卡片重新向控制器请求该交换机的统计数据。如果尚无交换机接入，该卡片显示 “No data to display...”。
+- **“Switch Desc” 卡片**：展示 `Manufacturer`, `Hw Desc`, `Sw Desc`, `Serial Num`, `Dp Desc` 等描述字段，内容来自 `GET /data?switchdesc=<dpid>` 的 JSON。用于核对交换机厂商信息或验证是否连接到预期的 OVS 实例。
+- **“Port Desc” 卡片**：列出交换机所有端口的配置（Port No、Hw Addr、Name、State 等），用于检查端口是否处于 `up` 状态以及端口名是否符合预期。
+- **“Ports stats” 卡片**：按端口显示 `TX/RX Packets`、`TX/RX Bytes`、错误计数等实时统计。右上角的 `↔` 图标可以将卡片展开至全宽，便于截屏；`−` 图标可以折叠内容仅保留标题栏。
+- **“Flow Summary” 卡片**：显示当前交换机按表汇总的流条目数量与匹配统计（字段与 Ryu `aggregate_flow_stats` 相同），可快速判断是否写入了新流表。
+- **“Table stats” 卡片**：每张表的容量与当前条目数（Active Count、Lookup Count、Matched Count），用于监控表资源占用。如果控制器启用了额外模块，页面也会追加更多卡片；若未启用，对应卡片保持空白。
+
+### Flows（菜单链接 “Flows”，页面抬头 “Flow Tables”）
+
+- **“Refresh” 按钮**：位于标题栏右侧，手动重新请求 `GET /data?flows=<dpid>` 结果。FlowManager 默认不会自动轮询，因此每次写入流表后请点击刷新以获取最新数据。
+- **顶部页签**：自动生成 `SW_1`、`SW_2` 等标签（`Tabs('switches')`），与 “Switch ID(s)” 卡片所列的 DPID 对应。切换页签即切换当前查看的交换机。
+- **流表卡片**：每张表会生成一张“Flow Table”卡片。表格列标题与 FlowManager 的 `header_of13` 定义一致，包括 `Priority`、`Match Fields`、`Cookie`、`Duration`、`Idle Timeout`、`Hard Timeout`、`Instructions`、`Packet Count`、`Byte Count`、`Flags`。这些字段直接反映 `dump_flows` 结果，便于核对 Flow Control 表单提交后的效果。
+- **行选择器**：左侧复选框可勾选若干流项，供后续调用 “Messages → Stats” 里的监控功能；默认教程不依赖该功能，但可以用来定位具体条目。
+
+### Groups（菜单链接 “Groups”，页面抬头 “Group Tables”）
+
+- **页签 “Group Types”**：按交换机生成标签，并在每个标签内进一步分 `all / select / indirect / fast_failover` 四个子表，列出组 ID、引用端口及动作桶。若控制器尚未安装组表，页面显示空白提示。
+- **“Refresh” 按钮**：与 Flows 页面相同，用于手动刷新 `GET /data?groups=<dpid>` 的结果。
+
+### Meters（菜单链接 “Meters”，页面抬头 “Meter Tables”）
+
+- **页签结构**：与 “Flows” 页面一致，按交换机分组显示。每张表展示 `meter_id`、`flags`、`bands`、`band_type`、`rate`、`burst_size` 等字段，来源于 `GET /data?meters=<dpid>`。
+- **统计列含义**：`flags` 列会列出 `KBPS`、`BURST`、`STATS` 等标志，`bands`/`band_type` 展示每个 band 的动作类型与速率设置，便于确认 Meter Control 表单是否生效。
+
+### Flow Control（菜单链接 “Flow Control”，页面抬头 “Flow Form”）
+
+- **顶部按钮**：`Submit` 将表单序列化为 JSON 并 POST `/flowform`，底部 `#snackbar` 弹出 “status: success” 或错误信息；`Clear` 使用浏览器原生的重置逻辑清空所有输入。
+- **“Target” 字段集**：`Switch ID` 下拉列出所有在线交换机（值为 DPID），`Table ID` 数字输入指定要写入的表号（默认 `0`）。
+- **“Flow Operation” 单选组**：提供 `Add`、`Modify`、`Modify Strict`、`Delete`、`Delete Strict` 五种 OpenFlow 操作。选择 `Delete*` 会自动启用下方的 `Output Port` / `Output Group`，允许输入 `-1` 代表 “ANY”。
+- **“Match Fields” 区域**：`Match Any` 复选框勾选后等价于写入通配规则；未勾选时可在表格中通过 `Match Field`（带 datalist 自动补全）与 `Value`（文本框）逐项添加匹配条件。点击 `+` 会复制当前行并改成 `-`，用于添加或删除额外字段。
+- **“Priority / Timeout / Cookie” 区域**：提供 `Priority`、`Idle Timeout`、`Hard Timeout`、`Cookie`、`Cookie Mask` 输入框。留空表示采用控制器默认值（0 或永久）。
+- **“Instructions” 区域**：
+  - `Goto Meter` 数字输入框：填写 Meter ID（-1 表示不引用）。
+  - `Apply Actions` / `Write Actions` 表格：通过 `Action Type`（带自动补全）与 `Value` 字段配置 `OUTPUT:port`、`SET_QUEUE:{"queue_id":1}` 等动作，`+`/`-` 控制行数。
+  - `Clear Actions` 复选框：勾选后会在 JSON 中加入 `clear_actions`。
+  - `Write Metadata` 与 `Metadata Mask`：写入控制平面元数据，接受十进制或带 `0x` 前缀的数值。
+  - `Goto Table`：指定后续跳转的表号（>=1）。
+- **“Flags” 区域**：包含 `Send flow-removed msg`、`Check overlapping`、`Reset counts`、`Do not count packets`、`Do not count bytes` 五个勾选项，分别对应 OpenFlow `OFPFF_*` 标志。
+- **提交结果**：成功后可在 “Flows” 页面看到新增条目；若 JSON 校验失败（由 `flowmodvalidate.js` 判定），Snackbar 会提示缺失字段或非法值。
+
+### Group Control（菜单链接 “Group Control”，页面抬头 “Group Control”）
+
+- **“Target” 字段集**：`Switch ID` 下拉、`Group ID` 数字输入（>0）、`Group Type` 下拉（`ALL` / `SELECT` / `INDIRECT` / `FAST_FAILOVER`）。
+- **“Group Operation” 单选组**：提供 `Add`、`Modify`、`Delete`。
+- **“Action Buckets” 表格**：默认渲染三块 `Bucket_1/2/3`，每块包含 `Action Type`（带 datalist）与 `Value`，用于定义该桶内的动作序列。点击 `+`/`-` 可增删同一桶内的动作。若某桶留空，提交时对应列表为空数组。
+- **提交行为**：`Submit` 会向 `/groupform` POST JSON，Snackbar 返回结果字符串；`Clear` 清空所有输入并恢复默认。
+
+### Meter Control（菜单链接 “Meter Control”，页面抬头 “Meter Control”）
+
+- **“Target” 字段集**：`Switch ID` 下拉选择交换机，`Meter ID` 数字输入（范围 `1`~`4294901760`）。
+- **“Flags” 复选框**：`Rate in Kbps`（默认勾选）与 `Rate in pps` 互斥；`Do Burst Size` 决定是否启用 `Burst Size` 输入框；`Collect Statistics` 控制是否设置 `STATS` 标志。
+- **“Meter Operation” 单选组**：`Add`、`Modify`、`Delete` 对应 OpenFlow Meter 操作。
+- **“Meter Bands” 表格**：首行提供 `Band Type`（datalist 包含 `DROP`、`DSCP_REMARK`）、`Rate`、`Burst Size`、`Prec Level` 四列。`+` 可复制一行用于创建额外 band，`DSCP_REMARK` 时 `Prec Level` 输入框自动启用。`Do Burst Size` 勾选后 `Burst Size` 输入框自动解除灰化。
+- **提交行为**：向 `/meterform` POST JSON，响应写入 Snackbar。成功后可以在 “Meters” 页面验证 `meter_id`、`bands` 等字段。
+
+### Topology（菜单链接 “Topology”，页面抬头 “Topology”）
+
+- **模式页签**：顶部的 `Graph` 与 `Tables` 标签由 `Tabs('topology')` 创建。`Graph` 展示 D3 力导向图；`Tables` 以表格列出原始 JSON。
+- **“Refresh” 按钮**：重新请求 `GET /topology`，以便在拓扑变动后更新画布。
+- **图形交互**：
+  - 节点图标分别对应交换机（`/home/img/switch.svg`）、主机（`/home/img/pc.svg`）和云节点；悬停时在左上角弹出 tooltip，显示 `dpid`、`mac`、`ipv4` 等属性。
+  - 链路上方的数字显示 `src.port_no` / `dst.port_no`，方便核对 “Flow Control” 表单中使用的端口号。
+  - 画布支持拖拽节点并自动保持在边界内（`box_force`）。
+- **信息面板**：页面底部会打印 `/topology` 的 JSON 响应，便于排查主机缺失问题。
+
+### Messages（菜单链接 “Messages”，页面抬头 “Messages”）
+
+- **标签页 “Stats”**：`Switch` 下拉选择交换机，`Stat Type` 选择 `Flow`/`Port`/`Queue` 等类别，`Start`/`Stop` 控制后台轮询，结果以折线图或表格显示。
+- **标签页 “Config”**：提供 `Switch ID`、`Rest URL`、`Method`（GET/PUT/POST/DELETE）、`Data` 文本框，可直接向控制器发送 REST 请求。提交结果显示在下方 `Response` 框，并自动追加到 `Message Log`。
+- **标签页 “Message Log”**：展示之前的 REST 交互记录，支持滚动查看历史结果。
+
+### Configuration（菜单链接 “Configuration”，页面抬头 “Configuration Backup/Restore”）
+
+- **“Backup” 区域**：`Select Switches` 多选框默认高亮 `--ALL--`，表示导出所有交换机的 Flow/Meter/Group 配置；如需仅备份单台，可取消 `--ALL--` 并勾选特定 DPID。`Formatted` 复选框控制备份文件是否带缩进。`Save` 按钮会下载 `.bk` 文件并在页面底部文本框显示 JSON 内容。
+- **“Restore” 区域**：点击 `Choose Backup File` 选择 `.bk` 文件后，右侧 `Restore` 按钮变为可用。提交后 FlowManager 会依次将文件中的 meters/groups/flows 写回交换机，结果写入 Snackbar。
+- **文本框 `#confcontent`**：实时显示最近一次备份或上传文件的 JSON 内容，便于核对条目。
+
+### About（菜单链接 “About”，页面抬头 “About FlowManager”）
+
+- 展示 FlowManager 版本号、作者信息、开源协议链接，无交互控件。可用于引用原作者或确认许可证条款。
+
+> 提示：FlowManager 页面默认 15 秒轮询一次所选交换机（`moduleManager` 的默认值）。如果需要截屏或比对数据，可先点击卡片右上角的 `−` 暂停内容更新，再使用 `↔` 展开卡片以获取更清晰的表格。
+
+建议在浏览器中为常用页面（Home、Flow Control、Flows、Meter Control、Meters、Topology）分别打开标签页，便于在配置后立即切换到监控页面确认效果。
 
 ---
 
@@ -30,7 +101,7 @@
 2. **确认服务可用**：等待脚本输出 `HTTP serving on http://0.0.0.0:8080`，随后在浏览器访问 `http://<控制器 IP>:8080/flowmanager/`（带末尾 `/` 可避免静态资源路径错误；若浏览器缓存旧版本，可暂时访问 `/home/index.html` 验证静态资源加载情况）。
 3. **验证基础状态采集**：
    - Home 页面的 `Switch ID(s)` 下拉菜单在交换机未上线时为空，属正常现象；上线后请选择 `0000000000000001`。
-   - 保持 `Refresh Interval=5` 秒，检查 `Ports stats` 与 `Flow Summary` 卡片时间戳是否更新。尚无交换机连接时会显示 “No data to display...”，即可判定 Objective 1 完成。
+   - 在 “Switch ID(s)” 卡片点选 `0000000000000001` 后，确认 “Ports stats”“Flow Summary” 卡片的时间戳随轮询更新；若交换机尚未上线，卡片会停留在 “No data to display...”，此时等待握手完成即可。
 4. **常见排查**：Home 页菜单中的 `Messages` 链接可查看日志；若页面无法访问，请检查 8080 端口、防火墙及浏览器缓存（可按 `Ctrl+F5`）。
 
 > 快照建议：
@@ -87,30 +158,63 @@
 
 确认 OVSDB 地址生效后，再继续下表中的配置流程。
 
-| 步骤 | 菜单项（页面标题） | UI 控件（界面标签文本） | 操作与意义 |
-| --- | --- | --- | --- |
-| 1 | Configuration（页眉 “Configuration Backup/Restore”） | Backup → Select Switches | 默认高亮 `--ALL--`，表示一次性导出所有交换机的 Flow/Meter/Group 配置；保持选择即可备份三台交换机。 |
-|   |   | Backup → Formatted | 可选。勾选后导出的 JSON 会带缩进，便于人工阅读；未勾选时文件更紧凑，便于版本控制。 |
-|   |   | Backup → Save | 点击后，`config.js` 会顺序请求 `/status?status=meters|groups|flows` 并生成 `backup_<时间戳>.bk`。浏览器会自动下载该文件。 |
-|   |   | 浏览器下载文件 | 将下载的 `backup_<时间戳>.bk` 在本地重命名为 `baseline.bk`（或移动到 `docs/objectives/configs/` 目录），以便后续快速导入。 |
-| 2 | Meter Control（页眉 “Meter Control”） | Target → Switch ID | 下拉选择 `0000000000000001`（核心交换机 `s1`）。该列表由 `/data?list=switches` 自动填充，仅显示当前在线的交换机。 |
-|   |   | Target → Meter ID | 在数值框内输入 `1`。FlowManager 会将其作为 `meter_id` 下发到 Ryu。 |
-|   |   | Meter Operation | 保持单选按钮 `Add`，表示创建新 Meter。其他选项 `Modify`、`Delete` 用于后续调整，可暂不使用。 |
-|   |   | Flags | 仅勾选 `Rate in Kbps`。页面会自动取消 `Rate in pps`，确保使用 kbps 速率；同时勾选 `Do Burst Size` 以启用后续的 `Burst Size` 输入框，`Collect Statistics` 可按需勾选（默认关闭也能正常统计）。 |
-|   |   | Meter Bands（首行） | 在表格首行填写：`Band Type=DROP`、`Rate=20000`、`Burst Size=5000`。`Prec Level` 对 DROP 类型无效，保持灰色即可；若需要多条 band，可点击 `+` 复制新行。 |
-|   |   | Submit 按钮 | 点击页面顶部 `Submit` 发送表单，浏览器会向 `/meterform` POST JSON。底部弹出的 Snackbar 需显示 `status: success`，同时可在 “Meters” 菜单确认 `meter_id=1`。 |
-| 3 | Flow Control（页眉 “Flow Form”） | Target → Switch ID / Table ID | “Switch ID” 选择 `0000000000000001`，“Table ID” 输入 `0`，确保在表 0 写入高优先级规则。 |
-|   |   | Flow Operation | 保持单选按钮 `Add`，新增关键业务流。若后续需要修改，可改选 `Modify` 或 `Delete`。 |
-|   |   | Match Fields 表格 | 保持 “Match Any” 复选框未勾选。首行输入 `Match Field=in_port`、`Value=1`；点击 `+` 新增三行，依次填写 `eth_type=0x0800`、`ip_proto=17`、`udp_dst=5002`。字段名称均来自浏览器提示列表，务必与后端关键字一致。 |
-|   |   | Priority / Cookie | “Priority” 输入 `200`（越大越优先）；“Cookie” 数值框输入 `1`，FlowManager 会自动以十进制写入，Ryu 会在界面上显示为 `0x1`，便于区分关键业务。其余如 “Idle Timeout”“Hard Timeout” 留空即可表示常驻。 |
-|   |   | Instructions → Apply Actions | 在首行输入 `Action Type=OUTPUT`，`Value=2`（`s1` 指向 `s3/h4` 的端口，可在 “Topology” 页面确认端口编号）。如需使用队列，点击 `+` 新增一行并填写 `Action Type=SET_QUEUE`，`Value={"queue_id":1}`（确保 `s1-eth2` 预先创建了队列 ID 1）。 |
-|   |   | Submit 按钮 | 点击 `Submit` 后出现 “status: success” Snackbar。随后打开 “Flows” 菜单，选择 `Switches=0000000000000001`，确认出现 `priority=200`、`cookie=1` 的新条目，且 `match` 列展示上述四个匹配字段。 |
-| 4 | Flow Control（页眉 “Flow Form”） | Priority 较低的普通业务 | 保留 `Switch ID=0000000000000001`、`Table ID=0`、`Flow Operation=Add`。将 “Priority” 改为 `100`；若希望专门限制 TCP，可在 `Match Fields` 新增一行 `ip_proto=6`。 |
-|   |   | Match Fields / Goto Meter | `Match Fields` 至少保留 `in_port=1`、`eth_type=0x0800`，以覆盖同一路径上的常规业务；在 “Goto Meter” 数值框填写 `1`，确保普通业务流量进入上一节创建的 Meter。 |
-|   |   | Instructions → Apply Actions | 与关键业务一致，首行填写 `OUTPUT` → `2`。若关键业务配置了 `SET_QUEUE`，普通业务可保持仅输出到端口，以便 Meter 执行限速。 |
-|   |   | Submit + 验证 | 点击 “Submit” → Snackbar 显示 `status: success`。回到 “Flows” 页面，确认新增 `priority=100`、`meter_id=1`（在 `instructions` 中可见）的条目；在流量运行后观察 `byte_count` 随时间受限。 |
-| 5 | Configuration（页眉 “Configuration Backup/Restore”） | Backup → Select Switches / Save | 重复步骤 1 的操作，保持 `--ALL--`，点击 “Save” 备份最新的 QoS 策略。下载完成后将文件重命名为 `priority.bk`（或 `classification.bk` 等），以区分不同策略快照。 |
-|   |   | Restore（可选验证） | 如需验证备份有效，可在同页的 “Restore” 区域点击 “Choose Backup File” 选中 `priority.bk`，按钮 “Restore” 变为可用后点击提交，等待 Snackbar 显示 `status: success`。 |
+### 步骤 1：在菜单 “Configuration” 备份初始基线
+
+1. 打开左侧菜单 “Configuration”（页面标题 “Configuration Backup/Restore”）。
+2. 在 “Backup” 区域保持 `Select Switches` 多选框的 `--ALL--` 选中状态，表示一次性导出所有在线交换机的 Flow/Meter/Group 配置。
+3. 点击 “Save” 后，浏览器会自动下载 `backup_<时间戳>.bk`；如需固定文件名，可在本地重命名为 `baseline.bk`。同时底部文本框 `confcontent` 会从 “No content...” 更新为备份 JSON，方便现场核对内容。
+
+### 步骤 2：在 “Meter Control” 页面创建关键业务 Meter
+
+1. 打开菜单 “Meter Control”（页面抬头 “Meter Control”）。
+2. 在 “Target” 区域：
+   - `Switch ID` 下拉选择 `SW_1`（提交时会写成 DPID `0000000000000001`）。
+   - `Meter ID` 输入 `1`，为关键业务预留编号。
+3. 在 “Flags” 区域：
+   - 保持 `Rate in Kbps` 勾选（FlowManager 会自动取消 `Rate in pps`）。
+   - 勾选 `Do Burst Size` 以启用表格中的 `Burst Size` 输入。
+   - `Collect Statistics` 可按需勾选（对统计展示非必需）。
+4. 在 “Meter Operation” 保持单选按钮 `Add`。
+5. 在 “Meter Bands” 表格首行填写：
+   - `Band Type=DROP`。
+   - `Rate=20000`（对应 20 Mbps，可按实验需求调整）。
+   - `Burst Size=5000`（若 `Do Burst Size` 选中，输入框已可编辑）。
+   - `Prec Level` 对 DROP 无效，保持灰色 `0` 即可。
+   - 如需额外 Band，点击 `+` 复制新行，`-` 则删除行。
+6. 点击顶部 `Submit`，等待底部 Snackbar 弹出 `status: success`。随后可切换到 “Meters” 菜单确认 `meter_id=1`、`flags=KBPS|BURST`、`bands` 等字段确实写入。
+
+### 步骤 3：在 “Flow Control” 页面写入关键业务流
+
+1. 打开菜单 “Flow Control”（页面抬头 “Flow Form”）。
+2. 在 “Target” 区域选择 `Switch ID=0000000000000001`，`Table ID=0`（默认表）。
+3. “Flow Operation” 保持 `Add`。
+4. 在 “Match Fields” 表格中：
+   - 确认 “Match Any” 复选框未勾选。
+   - 首行填写 `Match Field=in_port`、`Value=1`（来自 `s2` 的入端口）。
+   - 点击 `+` 新增三行，依次填写 `eth_type=0x0800`、`ip_proto=17`、`udp_dst=5002`。字段名称需与自动补全候选一致，以匹配 Ryu 解析逻辑。
+5. 在 “Priority / Timeout / Cookie” 区域：
+   - `Priority` 输入 `200`，提升关键业务优先级。
+   - `Cookie` 输入 `1`，用于后续过滤该流；其余超时字段留空代表永久。
+6. 在 “Instructions” 区域：
+   - `Goto Meter` 留空（关键业务不走 Meter）。
+   - `Apply Actions` 首行填写 `Action Type=OUTPUT`、`Value=2`（`s1` 指向 `s3/h4` 的端口号，可在 Topology 页面核对）。
+   - 如需强制走队列，可再添加一行 `SET_QUEUE` 并输入 `{"queue_id":1}`（需提前在 `s1-eth2` 创建队列 1）。
+   - 其他选项保持默认。
+7. 点击 `Submit`。Snackbar 显示 `status: success` 后，切换到 “Flows” 页面 → 选择 `SW_1`，确认表 0 中新增 `priority=200`、`cookie=1`、`match` 列含四个字段的新条目。
+
+### 步骤 4：写入普通业务流并挂接 Meter
+
+1. 仍在 “Flow Control” 页面：保持 `Switch ID=0000000000000001`、`Table ID=0`、`Flow Operation=Add`。
+2. 将 “Priority” 调整为 `100`，以低于关键业务。
+3. 在 “Match Fields” 中保留 `in_port=1`、`eth_type=0x0800`，必要时补充 `ip_proto=6`（若要额外限制 TCP）。
+4. 在 “Goto Meter” 输入 `1`，让普通业务流量进入步骤 2 创建的 Meter。
+5. 在 “Apply Actions” 保持 `OUTPUT` → `2`；如关键业务使用了 `SET_QUEUE`，普通业务可不设置队列以便 Meter 控速生效。
+6. 点击 `Submit` 并观察 Snackbar 成功提示。随后在 “Flows” 页面检查表项，确认 `instructions` 字段包含 `meter_id=1`，且在业务运行后 `byte_count` 受限于 Meter 设置。
+
+### 步骤 5：再次备份策略并验证恢复
+
+1. 回到 “Configuration” 页面，重复步骤 1 中的备份流程，点击 `Save` 下载最新策略，建议命名为 `priority.bk`（或其他具有标识性的文件名）。
+2. （可选）在同一页面 “Restore” 区域点击 `Choose Backup File` 选中刚才的 `priority.bk`，待 `Restore` 按钮高亮后点击提交，确认 Snackbar 返回 `status: success`，以验证备份文件可成功恢复。
 
 完成后，可在 Mininet 中执行：
 ```bash
