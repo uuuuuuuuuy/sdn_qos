@@ -51,8 +51,7 @@ PYTHON3 = sys.version_info > (3, 0)
 LOG_FILE_NAME = 'flwmgr.log'
 print("You are using Python v" + '.'.join(map(str, sys.version_info)))
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from flow_monitor import Tracker
+from .flow_monitor import Tracker
 
 
 class FlowManager(app_manager.RyuApp):

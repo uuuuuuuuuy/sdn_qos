@@ -60,10 +60,12 @@ sdn_qos/
    sudo apt install libxml2-dev libxslt1-dev libffi-dev iperf3
    ```
 以上 `tinyrpc` 为 FlowManager RPC 调用所需依赖，缺失时会导致 FlowManager 在处理 PacketIn 时抛出异常，请务必安装。
-3. **拷贝 QoS 应用至 Ryu**：
+3. **将 FlowManager 代码安装为可编辑包**：这样无论从哪个目录运行 `ryu-manager`，都会优先加载当前仓库中的 `flowmanager` 与 `ryu_qos_apps` 源码。
    ```bash
-   cp ryu_qos_apps/*.py <RYU_SOURCE_DIR>/ryu/app/
+   ./scripts/setup/install_editable.sh
+   python3 -c 'import flowmanager; print(flowmanager.__file__)'
    ```
+   若输出路径位于 `.../sdn_qos/flowmanager/__init__.py`，即表示可编辑安装成功。之后只需在更新代码后重新运行脚本，即可让控制器使用最新源码。
 4. **（可选）安装 D-ITG 流量发生器**：
    ```bash
    wget http://www.grid.unina.it/software/ITG/codice/D-ITG-2.8.1-r1023-src.zip

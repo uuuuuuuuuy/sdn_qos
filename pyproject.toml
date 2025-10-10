@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=67"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sdn-qos-flowmanager"
+version = "0.1.0"
+description = "FlowManager QoS demo applications and helpers"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [{name = "SDN QoS Maintainers"}]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "flowmanager",
+    "flowmanager.*",
+    "ryu_qos_apps",
+]
+
+[tool.setuptools.package-data]
+flowmanager = [
+    "*.html",
+    "css/*",
+    "js/*",
+    "img/*",
+    "data/*",
+    "docs/*",
+]
