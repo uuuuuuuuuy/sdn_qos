@@ -25,6 +25,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib import ofctl_v1_3
 from ryu.lib import ofctl_utils
+from ryu.lib import dpid as ryu_dpid
 from ryu import utils
 
 # for packet content
@@ -34,9 +35,10 @@ from ryu.lib.packet import ether_types
 
 # for topology discovery
 #from ryu.topology import event
+from ryu.topology import event as topo_event
 from ryu.topology.api import get_all_switch, get_all_link, get_all_host
 
-from webapi import WebApi
+from .webapi import WebApi
 import os
 import sys
 import logging
@@ -49,8 +51,7 @@ PYTHON3 = sys.version_info > (3, 0)
 LOG_FILE_NAME = 'flwmgr.log'
 print("You are using Python v" + '.'.join(map(str, sys.version_info)))
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from flow_monitor import Tracker
+from .flow_monitor import Tracker
 
 
 class FlowManager(app_manager.RyuApp):
@@ -83,6 +84,7 @@ class FlowManager(app_manager.RyuApp):
         self.ofctl = ofctl_v1_3
         self.rpc_clients = []
         self.tracker = Tracker()
+        self._hosts_by_mac = {}
 
         # Data exchanged with WebApi
         wsgi.register(WebApi,
@@ -712,23 +714,98 @@ class FlowManager(app_manager.RyuApp):
 
     # @set_ev_cls(event.EventSwitchEnter)
 
+    def _remember_host(self, host):
+        """Track the latest Host object keyed by its MAC address."""
+
+        if host is None:
+            return
+
+        mac = getattr(host, 'mac', None)
+        if not mac:
+            return
+
+        self._hosts_by_mac[mac] = host
+
+    @set_ev_cls(topo_event.EventHostAdd)
+    def _event_host_add(self, ev):
+        self._remember_host(ev.host)
+
+    @set_ev_cls(topo_event.EventHostMove)
+    def _event_host_move(self, ev):
+        # ``EventHostMove`` carries the updated host details in ``dst``.
+        self._remember_host(getattr(ev, 'dst', None))
+
+    @set_ev_cls(topo_event.EventHostDelete)
+    def _event_host_delete(self, ev):
+        mac = getattr(ev.host, 'mac', None)
+        if mac in self._hosts_by_mac:
+            del self._hosts_by_mac[mac]
+
     def get_topology_data(self):
         """Get Topology Data
         """
         switch_list = get_all_switch(self)
-        switches = [switch.to_dict() for switch in switch_list]
-        links_list = get_all_link(self)
-        links = [link.to_dict() for link in links_list]
-        host_list = get_all_host(self)
-
-        # To remove hosts that are not removed by controller
-        ports = []
+        switches = []
         for switch in switch_list:
-            ports += switch.ports
-        port_macs = [p.hw_addr for p in ports]
-        n_host_list = [h for h in host_list if h.port.hw_addr in port_macs]
+            switch_dict = switch.to_dict()
+            dpid = switch_dict.get('dpid')
+            if isinstance(dpid, int):
+                switch_dict['dpid'] = ryu_dpid.dpid_to_str(dpid)
+            switches.append(switch_dict)
+        links_list = get_all_link(self)
+        links = []
+        for link in links_list:
+            link_dict = link.to_dict()
+            for endpoint in ('src', 'dst'):
+                endpoint_dict = link_dict.get(endpoint)
+                if not isinstance(endpoint_dict, dict):
+                    continue
+                dpid_value = endpoint_dict.get('dpid')
+                if isinstance(dpid_value, int):
+                    endpoint_dict['dpid'] = ryu_dpid.dpid_to_str(dpid_value)
+            links.append(link_dict)
+        # Host information can be obtained from the Switches app via
+        # ``get_all_host`` or, if that call returns an empty list (which may
+        # happen briefly after topology changes), from the events that Flow
+        # Manager subscribes to.  We merge both sources to ensure the UI can
+        # always render the latest host view.
+        host_list = get_all_host(self) or []
+        for host in host_list:
+            self._remember_host(host)
 
-        hosts = [h.to_dict() for h in n_host_list]
+        host_records = list(self._hosts_by_mac.values())
+
+        hosts = []
+        for host in host_records:
+            port = getattr(host, 'port', None)
+            if port is None:
+                continue
+
+            dpid = getattr(port, 'dpid', None)
+            port_no = getattr(port, 'port_no', None)
+            if dpid is None:
+                continue
+
+            host_dict = host.to_dict()
+            port_dict = host_dict.get('port') or {}
+
+            # Ensure the port dictionary always exposes the datapath ID and
+            # port number fields expected by the frontend visualisation.  Some
+            # Ryu versions omit one or both keys from ``to_dict()`` when the
+            # backing attribute is unset, which prevents the FlowManager UI
+            # from drawing the host nodes.
+            if 'dpid' not in port_dict or port_dict['dpid'] is None:
+                port_dict['dpid'] = dpid
+            dpid_str = port_dict.get('dpid')
+            if isinstance(dpid_str, int):
+                port_dict['dpid'] = ryu_dpid.dpid_to_str(dpid_str)
+            if 'port_no' not in port_dict or port_dict['port_no'] is None:
+                port_dict['port_no'] = port_no
+            if isinstance(port_dict.get('port_no'), str) and port_dict['port_no'].isdigit():
+                port_dict['port_no'] = int(port_dict['port_no'])
+
+            host_dict['port'] = port_dict
+            hosts.append(host_dict)
 
         return {"switches": switches, "links": links, "hosts": hosts}
 

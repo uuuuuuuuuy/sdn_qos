@@ -10,6 +10,15 @@
 - **自动化图表生成**：`scripts/tools/plot_metrics.py` 与 `scripts/objectives/objective4_plot.py` 可批量输出端口/队列/表项曲线与流表 Top-N、QoS 配置等图表，为 Objective 4/5 提供论文级素材。
 - **论文支撑材料**：整理实验流程、模板与常见问题，方便撰写技术报告或论文。
 
+## 项目流程与仓库内容的对应关系
+
+- **Planning（规划）**：README 中的“部署准备”“运行流程”章节给出了所需依赖、启动脚本与运行顺序，可直接作为实验规划与执行计划。
+- **Research（调研）**：仓库主要聚焦实施与验证环节，若需撰写背景调研，请结合外部文献补充，随后可与下述实现步骤衔接。
+- **Design（设计）**：`docs/objectives/README.md` 描述各 Objective 的拓扑、QoS 策略与表单填写要点，等同于详细的网络/策略设计说明。
+- **Development（开发）**：控制器侧的 `flowmanager/`、`ryu_qos_apps/` 代码实现了拓扑发现、主机缓存、QoS REST 接口与前端数据服务；启动脚本会自动加载这些模块进入 Ryu。
+- **Test（测试验证）**：README 与手册提供了 `pingall`、`iperf3`、`export_metrics.py` 等测试命令，用于连通性与性能验证，支撑流程图中的测试阶段。
+- **Report & Presentation（总结汇报）**：`docs/objectives/OBJECTIVE5_REPORT_TEMPLATE.md` 及 `objective5_generate_assets.py` 自动化脚本可生成图表与压缩包，帮助整理实验结果并撰写报告。
+
 ## 仓库结构概览
 
 ```text
@@ -51,10 +60,12 @@ sdn_qos/
    sudo apt install libxml2-dev libxslt1-dev libffi-dev iperf3
    ```
 以上 `tinyrpc` 为 FlowManager RPC 调用所需依赖，缺失时会导致 FlowManager 在处理 PacketIn 时抛出异常，请务必安装。
-3. **拷贝 QoS 应用至 Ryu**：
+3. **将 FlowManager 代码安装为可编辑包**：这样无论从哪个目录运行 `ryu-manager`，都会优先加载当前仓库中的 `flowmanager` 与 `ryu_qos_apps` 源码。
    ```bash
-   cp ryu_qos_apps/*.py <RYU_SOURCE_DIR>/ryu/app/
+   ./scripts/setup/install_editable.sh
+   python3 -c 'import flowmanager; print(flowmanager.__file__)'
    ```
+   若输出路径位于 `.../sdn_qos/flowmanager/__init__.py`，即表示可编辑安装成功。之后只需在更新代码后重新运行脚本，即可让控制器使用最新源码。
 4. **（可选）安装 D-ITG 流量发生器**：
    ```bash
    wget http://www.grid.unina.it/software/ITG/codice/D-ITG-2.8.1-r1023-src.zip
@@ -91,8 +102,8 @@ sdn_qos/
    ```
    拓扑包含 3 台 OVS 与 3 台主机，满足 Objective 1-4 的验证与统计需求。
 3. **在 FlowManager 中完成配置与采集**：
-   - 浏览器访问 `http://<控制器 IP>:8080/flowmanager/index.html`。
-   - 参考 `docs/objectives/README.md`，依序填写 Dashboard/Meter/Flow 表单，并执行 QoS 配置切换、统计导出与 CSV/图表生成。
+   - 浏览器访问 `http://<控制器 IP>:8080/flowmanager/`（带末尾 `/` 可触发控制器返回 301 重定向，确保静态资源以 `/flowmanager/...` 路径加载）；如遇浏览器缓存旧资源，可暂时访问 `/home/index.html` 核对页面。
+   - 参考 `docs/objectives/README.md`，依序填写 Home/Meter/Flow 表单，并执行 QoS 配置切换、统计导出与 CSV/图表生成。
    - 自动化辅助脚本示例：
      ```bash
      # Objective 3：按场景采集端口/流表/队列/QoS 规则
@@ -175,11 +186,32 @@ sdn_qos/
 
 依照以上步骤即可直接跑通项目并得到完整的实验数据与对比图表。
 
+### 拓扑页面未显示主机时的排查建议
+
+- FlowManager 会持续监听 `EventHostAdd/EventHostMove` 事件来维护主机列表；当有新的主机发起 ARP/ICMP 等报文后，控制器即可收到事件并缓存至拓扑响应中。若页面只显示交换机，请先在 Mininet 中执行 `pingall`、`arping` 或发起业务流量，触发主机报文上送控制器。
+- 拓扑页面底部会打印 `/topology` 接口返回的原始 JSON，可用来确认主机数据是否已经出现在响应里；如果 `hosts` 仍为空，可通过 `ryu-manager` 日志确认是否收到了 `EventHostAdd` 事件。
+- 若在长时间运行后进行拓扑调整（例如重新连接主机），FlowManager 会在收到 `EventHostMove` 事件后自动更新缓存；刷新页面即可看到最新状态，无需手动清除浏览器缓存。
+- 如果自定义了与默认脚本不同的拓扑，请确保开启了 `ryu.topology.switches` 应用并允许 LLDP 包在拓扑上通行，否则控制器无法定位主机挂载的端口。
+
+## SSH 环境下访问 Web UI
+
+如果你“目前使用 SSH 在无图形界面的终端中运行，然后希望在本地的浏览器中访问 WebUI”，可以按以下步骤操作：
+
+1. **在本地机器上建立 SSH 端口转发**：假设远程控制器主机为 `mininet@controller.example.com`，Ryu + FlowManager 在远程 `8080` 端口提供服务，可在本地终端执行：
+   ```bash
+   ssh -L 8080:127.0.0.1:8080 mininet@controller.example.com
+   ```
+   该命令会把本地 `127.0.0.1:8080` 的连接，转发到远程控制器的 `127.0.0.1:8080`，登录成功后保持该 SSH 会话不要断开。
+2. **在本地浏览器访问**：打开浏览器，输入 `http://127.0.0.1:8080/flowmanager/`（推荐带末尾 `/`，确保 CSS/JS 以 `/flowmanager/...` 路径加载；若遇 404，可先尝试 `/home/index.html`，随后检查控制器是否加载了仓库内的 FlowManager 版本），即可像在远程主机上本地访问一样使用 WebUI。
+3. **需要转发其他服务端口时**：重复添加 `-L <本地端口>:127.0.0.1:<远程端口>` 选项即可，例如 FlowManager 的 REST API (`8080`) 和 OVSDB (`6632`) 都可按需转发。
+
+若本地已有占用端口，可把 `-L` 前半部分替换为其他未被占用的端口，例如 `-L 18080:127.0.0.1:8080`，然后在浏览器访问 `http://127.0.0.1:18080/flowmanager/`。
+
 ## 目标执行指南
 
 为便于项目管理，仓库提供了中文执行手册：
 
-- `docs/objectives/README.md`：针对 Objective 1-5 的 FlowManager 操作步骤、页面字段取值与常见问题（含 Dashboard/Meter/Flow Form 字段填写示例）。
+- `docs/objectives/README.md`：针对 Objective 1-5 的 FlowManager 操作步骤、页面字段取值与常见问题（含 Home/Meter/Flow Form 字段填写示例）。
 - `docs/objectives/OBJECTIVE5_REPORT_TEMPLATE.md`：论文写作提纲，涵盖架构说明、实验设计、结果分析与总结。
 
 祝顺利完成 Objective 1-5 并写出高质量论文！

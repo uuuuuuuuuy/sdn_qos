@@ -36,6 +36,11 @@ from ryu.lib import ofctl_v1_0
 from ryu.lib import ofctl_v1_2
 from ryu.lib import ofctl_v1_3
 from ryu.lib.ovs import bridge
+
+from ryu_qos_apps import ovs_compat
+
+
+ovs_compat.ensure_ovs_idl_compatibility()
 from ryu.ofproto import ofproto_v1_0
 from ryu.ofproto import ofproto_v1_2
 from ryu.ofproto import ofproto_v1_3
